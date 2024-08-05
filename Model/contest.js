@@ -10,6 +10,10 @@ const contestSchema = new mongoose.Schema({
       fullname: {
         type: String,
         required: true
+      },
+      score: {
+        type: Number,
+        default: 0
       }
     }
   ]

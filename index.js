@@ -15,12 +15,13 @@ const CombineDetails = require("./Model/OtherData.js");
 const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
+const contest = require("./Model/contest.js");
 
 const app = express();
 const secretKey = "credmantra";
 
 app.use(express.json());
-app.use(bodyParser.json());  
+app.use(bodyParser.json());
 
 //Genrate-Otp Api
 app.post("/generate-otp", async (req, res) => {
@@ -60,7 +61,7 @@ app.post("/generate-otp", async (req, res) => {
 });
 
 //verify-Otp
-app.post("/verify-otp",  async (req, res) => {
+app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
     try {
         const phoneNumberData = await PhoneNumber.findOne({
@@ -268,27 +269,64 @@ app.post("/join-game", async (req, res) => {
     }
 });
 
+app.post("/join-game/many", async (req, res) => {
+    const { contestId, newcombineId, fullname, gameAmount } = req.body;
+    try {
+        const contest = await contestdetails.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        if (contest.combineId.length >= 4) {
+            return res.status(400).json({ message: "Contest full" });
+        }
+        const user = await getUserById(newcombineId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const wallet = await getWalletBycombineId(newcombineId);
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        if (wallet.balance < gameAmount) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+        wallet.balance -= gameAmount;
+        await wallet.save();
+        await logTransaction(newcombineId, -gameAmount, "debit");
+        contest.combineId.push({ id: newcombineId, fullname: fullname });
+        await contest.save();
+        res.json({
+            message: `User ${fullname} joined contest and game`,
+            contestId,
+            balance: wallet.balance,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
 // Student based Question
 app.post("/question", async (req, res) => {
     const { combineId } = req.body;
     try {
         const studentvalues = await CombineDetails.findById(combineId);
-        console.log(studentvalues);
         if (!studentvalues) {
             return res.status(400).send({ message: "Class is not available" });
         }
         const classvalue = studentvalues.studentDetails.classvalue;
-
-        console.log(classvalue);
         if (!classvalue) {
             return res.status(400).send({ message: "Student's class value is not defined" });
         }
         const count = await Question.countDocuments({ classvalue });
-        if (count.length === 0) {
+        if (count === 0) {
             return res.status(404).send({ message: "No questions available for this class" });
         }
         const random = Math.floor(Math.random() * count);
         const question = await Question.findOne({ classvalue }).skip(random);
+        if (!question) {
+            return res.status(404).send({ message: "Question not found" });
+        }
         res.json({ ...question.toJSON() });
     } catch (err) {
         console.error(err);
@@ -299,9 +337,9 @@ app.post("/question", async (req, res) => {
 // only Other GK Question
 app.post("/other/question", async (req, res) => {
     const { combineId } = req.body;
-
     try {
         const othervalues = await CombineDetails.findById(combineId);
+        console.log("urtyesdfgceacusd", othervalues);
         if (!othervalues) {
             return res.status(400).send({ message: "Data is not available" });
         }
@@ -323,27 +361,24 @@ app.post("/other/question", async (req, res) => {
 
 // Verify Answer Api
 app.post("/answer", async (req, res) => {
-    const { combineId, questionId, selectedOption, combineuser } = req.body;
+    const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
-        console.log(question);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
+
         const isCorrect = question.correctAnswer === selectedOption;
-        console.log(isCorrect);
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+
         if (isCorrect) {
-            combinedata.score = +1;
+            combinedata.score += 1;
             await combinedata.save();
 
-            let leaderboardEntry = await leaderboarddetail.findOne({
-                combineId: combineId,
-            });
-            // console.log(leaderboardEntry)
+            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
             if (!leaderboardEntry) {
                 leaderboardEntry = new leaderboarddetail({
                     combineId,
@@ -353,10 +388,22 @@ app.post("/answer", async (req, res) => {
             }
             leaderboardEntry.score += 1;
             await leaderboardEntry.save();
+
+            let contest = await contestdetails.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+
+            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            if (userContest) {
+                userContest.score += 1;
+                await contest.save();
+            }
         }
 
         res.json({
             combineId,
+            contestId,
             questionId,
             selectedOption,
             isCorrect,
@@ -369,27 +416,26 @@ app.post("/answer", async (req, res) => {
 });
 
 //Other Data Answer
+
 app.post("/other/answer", async (req, res) => {
-    const { combineId, gkquestionId, selectedOption, combineuser } = req.body;
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
-        console.log(question);
+
         const isCorrect = question.correctAnswer === selectedOption;
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+
         if (isCorrect) {
-            combinedata.score = +1;
+            combinedata.score += 1;
             await combinedata.save();
 
-            let leaderboardEntry = await leaderboarddetail.findOne({
-                combineId: combineId,
-            });
-            console.log("try", leaderboardEntry);
+            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
             if (!leaderboardEntry) {
                 leaderboardEntry = new leaderboarddetail({
                     combineId,
@@ -399,10 +445,22 @@ app.post("/other/answer", async (req, res) => {
             }
             leaderboardEntry.score += 1;
             await leaderboardEntry.save();
+
+            let contest = await contestdetails.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+
+            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            if (userContest) {
+                userContest.score += 1;
+                await contest.save();
+            }
         }
-        // console.log( "med",fullname)
+
         res.json({
             combineId,
+            contestId,
             gkquestionId,
             selectedOption,
             isCorrect,
@@ -414,25 +472,97 @@ app.post("/other/answer", async (req, res) => {
     }
 });
 
+// Compare-Game-2 user
+
 app.post("/game/compare", async (req, res) => {
     const { contestId, combineId1, combineId2, winningAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
-        console.log("hlo", contest);
+        console.log("Contest details:", contest);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-        const user1 = await leaderboarddetail.findOne({
-            combineId: combineId1,
-        });
+
+        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
+        console.log("User 1 details:", user1);
         if (!user1) {
-            return res.status(404).json({ message: "User 1 not found" });
+            return res.status(404).json({ message: "User 1 not found in contest" });
         }
-        const user2 = await leaderboarddetail.findOne({
-            combineId: combineId2,
-        });
+
+        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
+        console.log("User 2 details:", user2);
         if (!user2) {
-            return res.status(404).json({ message: "User 2 not found" });
+            return res.status(404).json({ message: "User 2 not found in contest" });
+        }
+
+        let winner;
+        if (user1.score > user2.score) {
+            winner = user1;
+        } else if (user1.score < user2.score) {
+            winner = user2;
+        } else {
+            return res.status(200).json({ message: "It's a tie!", user1, user2 });
+        }
+
+        if (winningAmount) {
+            const wallet = await getWalletBycombineId(winner.id);
+            if (!wallet) {
+                return res.status(404).json({ message: "Wallet not found for winner" });
+            }
+            wallet.balance += parseInt(winningAmount);
+            await updateWallet(wallet);
+            await logTransaction(winner.id, winningAmount, "credit");
+            return res.status(200).json({
+                message: "Winner determined and wallet updated",
+                winner: {
+                    combineId: winner.id,
+                    score: winner.score,
+                    wallet: wallet.balance,
+                },
+            });
+        } else {
+            return res.status(200).json({
+                message: "Winner determined",
+                winner: {
+                    combineId: winner.id,
+                    score: winner.score,
+                },
+            });
+        }
+    } catch (error) {
+        console.error("Error occurred:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+// Compare-Game-4 user
+app.post("/many/game/compare", async (req, res) => {
+    const { contestId, combineId1, combineId2 , combineId3 , combineId4 , winningAmount } = req.body;
+    try {
+        const contest = await contestdetails.findById(contestId);
+        console.log("Contest details:", contest);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
+        console.log("User 1 details:", user1);
+        if (!user1) {
+            return res.status(404).json({ message: "User 1 not found in contest" });
+        }
+        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
+        console.log("User 2 details:", user2);
+        if (!user2) {
+            return res.status(404).json({ message: "User 2 not found in contest" });
+        }
+        const user3 = contest.combineId.find((user) => user.id.toString() === combineId3);
+        console.log("User 3 details:", user3);
+        if (!user3) {
+            return res.status(404).json({ message: "User 3 not found in contest" });
+        }
+        const user4 = contest.combineId.find((user) => user.id.toString() === combineId4);
+        console.log("User 4 details:", user4);
+        if (!user4) {
+            return res.status(404).json({ message: "User 4 not found in contest" });
         }
         let winner;
         if (user1.score > user2.score) {
@@ -443,17 +573,17 @@ app.post("/game/compare", async (req, res) => {
             return res.status(200).json({ message: "It's a tie!", user1, user2 });
         }
         if (winningAmount) {
-            const wallet = await getWalletBycombineId(winner.combineId);
+            const wallet = await getWalletBycombineId(winner.id);
             if (!wallet) {
                 return res.status(404).json({ message: "Wallet not found for winner" });
             }
             wallet.balance += parseInt(winningAmount);
             await updateWallet(wallet);
-            await logTransaction(winner.combineId, winningAmount, "credit");
+            await logTransaction(winner.id, winningAmount, "credit");
             return res.status(200).json({
                 message: "Winner determined and wallet updated",
                 winner: {
-                    combineId: winner.combineId,
+                    combineId: winner.id,
                     score: winner.score,
                     wallet: wallet.balance,
                 },
@@ -462,7 +592,7 @@ app.post("/game/compare", async (req, res) => {
             return res.status(200).json({
                 message: "Winner determined",
                 winner: {
-                    combineId: winner.combineId,
+                    combineId: winner.id,
                     score: winner.score,
                 },
             });
@@ -473,7 +603,7 @@ app.post("/game/compare", async (req, res) => {
     }
 });
 
-// game Leaderboard
+// game Leaderboard user-2
 app.post("/game/result", async (req, res) => {
     const { contestId, combineId1, combineId2 } = req.body;
 
@@ -482,18 +612,16 @@ app.post("/game/result", async (req, res) => {
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-        console.log("hlo", contest);
-        const user1 = await leaderboarddetail.findOne({
-            combineId: combineId1,
-        });
+
+        // Find the user objects within the contest's combineId array
+        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
         if (!user1) {
-            return res.status(404).json({ message: "User 1 not found" });
+            return res.status(404).json({ message: "User 1 not found in contest" });
         }
-        const user2 = await leaderboarddetail.findOne({
-            combineId: combineId2,
-        });
+
+        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
         if (!user2) {
-            return res.status(404).json({ message: "User 2 not found" });
+            return res.status(404).json({ message: "User 2 not found in contest" });
         }
         let winner, loser;
         if (user1.score > user2.score) {
@@ -514,11 +642,82 @@ app.post("/game/result", async (req, res) => {
         return res.status(200).json({
             message: "Game result determined",
             winner: {
-                combineId: winner.combineId,
+                combineId: winner.id,
+                fullname: winner.fullname,
                 score: winner.score,
             },
             loser: {
-                combineId: loser.combineId,
+                combineId: loser.id,
+                fullname: loser.fullname,
+                score: loser.score,
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+
+// game Leaderboard user 4
+app.post("/many/game/result", async (req, res) => {
+    const { contestId, combineId1, combineId2, combineId3, combineId4 } = req.body;
+
+    try {
+        const contest = await contestdetails.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+
+        // Find the user objects within the contest's combineId array
+        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
+        if (!user1) {
+            return res.status(404).json({ message: "User 1 not found in contest" });
+        }
+
+        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
+        if (!user2) {
+            return res.status(404).json({ message: "User 2 not found in contest" });
+        }
+
+        const user3 = contest.combineId.find((user) => user.id.toString() === combineId3);
+        if (!user3) {
+            return res.status(404).json({ message: "User 3 not found in contest" });
+        }
+
+        const user4 = contest.combineId.find((user) => user.id.toString() === combineId4);
+        if (!user4) {
+            return res.status(404).json({ message: "User 4 not found in contest" });
+        }
+
+        // Create an array of users and sort by score
+        const users = [user1, user2, user3, user4];
+        users.sort((a, b) => b.score - a.score);
+
+        // Assign positions
+        const [winner, second, third, loser] = users;
+
+        // Send response
+        return res.status(200).json({
+            message: "Game result determined",
+            winner: {
+                combineId: winner.id,
+                fullname: winner.fullname,
+                score: winner.score,
+            },
+            second: {
+                combineId: second.id,
+                fullname: second.fullname,
+                score: second.score,
+            },
+            third: {
+                combineId: third.id,
+                fullname: third.fullname,
+                score: third.score,
+            },
+            loser: {
+                combineId: loser.id,
+                fullname: loser.fullname,
                 score: loser.score,
             },
         });
@@ -567,7 +766,9 @@ app.post("/wallet/add", async (req, res) => {
     }
     wallet.balance += parseInt(amount);
     await updateWallet(wallet);
-    await logTransaction(combineId, amount, "credit");
+
+    const trty = await logTransaction(combineId, amount, "credit");
+    console.log("first", trty);
     res.json({ balance: wallet.balance });
 });
 
@@ -583,13 +784,63 @@ app.post("/yearly-contest", async (req, res) => {
         if (contest.combineId.length >= 100000) {
             return res.status(400).json({ message: "Contest fully" });
         }
-        // console.log(contest.userId)
         contest.combineId.push(newcombineId);
         await contest.save();
         res.json({ message: `User ${newcombineId} joined contest`, contestId });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// Globli LeaderBoard
+app.post("/leaderboard/globle", async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const user = await leaderboarddetail.findOne({ combineId });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const contests = await contestdetails.find();
+        if (!contests || contests.length === 0) {
+            return res.status(404).json({ message: "No contests found" });
+        }
+
+        let totalScore = 0;
+        const userContests = contests
+            .map((contest) => {
+                const participant = contest.combineId.find((part) => part.id.toString() === combineId.toString());
+                if (participant) {
+                    totalScore += participant.score;
+                    return {
+                        contestId: contest._id,
+                        score: participant.score,
+                        fullname: participant.fullname,
+                    };
+                }
+            })
+            .filter((item) => item !== undefined);
+        const leaderboard = await leaderboarddetail.find();
+        const leaderboardData = leaderboard.map((entry) => {
+            const userTotalScore = contests.reduce((acc, contest) => {
+                const participant = contest.combineId.find((part) => part.id.toString() === entry.combineId.toString());
+                return acc + (participant ? participant.score : 0);
+            }, 0);
+            return {
+                combineId: entry.combineId,
+                combineuser: entry.combineuser,
+                totalScore: userTotalScore,
+            };
+        });
+        leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
+        res.status(200).json({
+            totalScore,
+            leaderboard: leaderboardData,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal server error" });
     }
 });
 

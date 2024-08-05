@@ -31,7 +31,7 @@ const studentSchema = new mongoose.Schema({
 const combineSchema = new mongoose.Schema({
     studentDetails: { type: studentSchema }, 
     formDetails: { type: formSchema  , required : false  },
-    // score: { type: Number, default: 0 }
+    score: { type: Number, default: 0 }
 });
 
 // Export the combined model
