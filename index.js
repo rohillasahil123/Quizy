@@ -104,7 +104,9 @@ app.post("/password", authhentication, async (req, res) => {
         res.status(500).json({ message: "Failed to save password" });
     }
 });
-// password Match
+
+
+// password Match cardMantra
 app.post("/match/password", authhentication, async (req, res) => {
     try {
         const { password, phoneNumberId } = req.body;
@@ -842,7 +844,12 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
+
+app.get("/check",(req,res)=>{
+    res.json("try to check")
+})
+
+app.listen(5000, () => {
     console.log("Server is running on port 3000");
 });
 
