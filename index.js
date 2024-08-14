@@ -1,5 +1,5 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
+const axios  = require("axios")
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction");
 const authhentication = require("./authentication/authentication");
@@ -10,23 +10,23 @@ const PhoneNumber = require("./Model/phoneNumber.js");
 const passworddata = require("./Model/passwordData.js");
 const contestdetails = require("./Model/contest.js");
 const Question = require("./Model/Question.js");
-1;
 const CombineDetails = require("./Model/OtherData.js");
 const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
+const authenticate = require("./authentication/authentication");
 
 const app = express();
 const secretKey = "credmantra";
+const fast2smsAPIKey = 'kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f'
 
 app.use(express.json());
 app.use(bodyParser.json());
 
 //Genrate-Otp Api
-app.post("/generate-otp", async (req, res) => {
+app.post("/send-otp", async (req, res) => { 
     const { phoneNumber } = req.body;
-    console.log("hlo", phoneNumber);
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
         return res.status(400).json({ success: false, message: "Invalid phone number" });
@@ -35,20 +35,28 @@ app.post("/generate-otp", async (req, res) => {
         lowerCaseAlphabets: false,
         upperCaseAlphabets: false,
         specialChars: false,
-        number: true,
+        number: true,  
     });
-    const otpExpiration = new Date(Date.now() + 5 * 60 * 2000);
+    const otpExpiration = new Date(Date.now() + 1 * 60 * 500);
     try {
         const updatedPhoneNumber = await PhoneNumber.findOneAndUpdate(
             { phoneNumber: phoneNumber },
             { otp: otp, otpExpiration: otpExpiration },
             { upsert: true, new: true, runValidators: true }
         );
-        console.log(updatedPhoneNumber);
+        const fast2smsResponse = await axios.get("https://www.fast2sms.com/dev/bulkV2", {
+            params: {
+                authorization: fast2smsAPIKey,
+                variables_values: otp,
+                route: "otp", 
+                numbers: phoneNumber,
+            },
+        });
+        console.log("Fast2SMS Response:", fast2smsResponse.data);
         res.json({
             success: true,
             updatedPhoneNumber,
-            message: "OTP generated successfully",
+            message: "OTP generated successfully",  
             otp: `Dont share your Quizy code : ${otp} `,
         });
     } catch (err) {
@@ -67,26 +75,21 @@ app.post("/verify-otp", async (req, res) => {
         const phoneNumberData = await PhoneNumber.findOne({
             phoneNumber: phoneNumber,
         });
-        console.log(phoneNumberData);
+
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
-            res.json({ success: true, message: "OTP verified successfully" });
+            const token = jwt.sign({ phoneNumber: phoneNumber }, secretKey, { expiresIn: "1h" });
+            res.json({ success: true, message: "OTP verified successfully", token });
         } else {
-            res.status(400).json({
-                success: false,
-                message: "Invalid OTP or OTP expired",
-            });
+            res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
     } catch (err) {
         console.error("Error verifying OTP:", err);
-        res.status(500).json({
-            success: false,
-            message: "Failed to verify OTP",
-        });
+        res.status(500).json({ success: false, message: "Failed to verify OTP" });
     }
 });
 
-//save Password
-app.post("/password", async (req, res) => {
+//save Password 
+app.post("/password", authhentication, async (req, res) => {
     const { phoneNumberId, password } = req.body;
     try {
         if (!phoneNumberId || !password) {
@@ -101,9 +104,8 @@ app.post("/password", async (req, res) => {
         res.status(500).json({ message: "Failed to save password" });
     }
 });
-
 // password Match
-app.post("/match/password", async (req, res) => {
+app.post("/match/password", authhentication, async (req, res) => {
     try {
         const { password, phoneNumberId } = req.body;
         if (!password || !phoneNumberId) {
@@ -127,7 +129,7 @@ app.post("/match/password", async (req, res) => {
 });
 
 // Forget password
-app.put("/forget/password", async (req, res) => {
+app.put("/forget/password", authhentication, async (req, res) => {
     try {
         const { oldpassword, newpassword, phoneNumberId } = req.body;
         if (!oldpassword || !newpassword || !phoneNumberId) {
@@ -166,7 +168,7 @@ app.put("/forget/password", async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add", async (req, res) => {
+app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
@@ -180,15 +182,14 @@ app.post("/other/add", async (req, res) => {
             error: "user details alerady save user details",
         });
     }
-});
+});;
 
 //  Student Form
-app.post("/student/add", async (req, res) => {
+app.post("/student/add", authhentication, async (req, res) => {
     try {
-        // console.log("Incoming data:", req.body);
         const studentdata = new CombineDetails({ studentDetails: req.body });
         const studentResult = await studentdata.save();
-        console.log("hello bhai", studentResult);
+        console.log("Student-Result", studentResult);
         res.send(studentResult);
     } catch (error) {
         console.log(error);
@@ -197,7 +198,7 @@ app.post("/student/add", async (req, res) => {
 });
 
 // Create Contest
-app.post("/create-contest", async (req, res) => {
+app.post("/create-contest", authhentication, async (req, res) => {
     const { combineId, fullname, gameAmount } = req.body;
     try {
         const userData = await CombineDetails.findById(combineId);
@@ -232,7 +233,7 @@ app.post("/create-contest", async (req, res) => {
 });
 
 // join game and cut amount
-app.post("/join-game", async (req, res) => {
+app.post("/join-game", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname, gameAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -269,7 +270,7 @@ app.post("/join-game", async (req, res) => {
     }
 });
 
-app.post("/join-game/many", async (req, res) => {
+app.post("/join-game/many", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname, gameAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -307,7 +308,7 @@ app.post("/join-game/many", async (req, res) => {
 });
 
 // Student based Question
-app.post("/question", async (req, res) => {
+app.post("/question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const studentvalues = await CombineDetails.findById(combineId);
@@ -335,7 +336,7 @@ app.post("/question", async (req, res) => {
 });
 
 // only Other GK Question
-app.post("/other/question", async (req, res) => {
+app.post("/other/question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -360,7 +361,7 @@ app.post("/other/question", async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/answer", async (req, res) => {
+app.post("/answer", authhentication, async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -416,8 +417,7 @@ app.post("/answer", async (req, res) => {
 });
 
 //Other Data Answer
-
-app.post("/other/answer", async (req, res) => {
+app.post("/other/answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -473,8 +473,7 @@ app.post("/other/answer", async (req, res) => {
 });
 
 // Compare-Game-2 user
-
-app.post("/game/compare", async (req, res) => {
+app.post("/game/compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, winningAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -536,8 +535,8 @@ app.post("/game/compare", async (req, res) => {
 });
 
 // Compare-Game-4 user
-app.post("/many/game/compare", async (req, res) => {
-    const { contestId, combineId1, combineId2 , combineId3 , combineId4 , winningAmount } = req.body;
+app.post("/many/game/compare", authhentication, async (req, res) => {
+    const { contestId, combineId1, combineId2, combineId3, combineId4, winningAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
         console.log("Contest details:", contest);
@@ -604,7 +603,7 @@ app.post("/many/game/compare", async (req, res) => {
 });
 
 // game Leaderboard user-2
-app.post("/game/result", async (req, res) => {
+app.post("/game/result", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2 } = req.body;
 
     try {
@@ -658,9 +657,8 @@ app.post("/game/result", async (req, res) => {
     }
 });
 
-
 // game Leaderboard user 4
-app.post("/many/game/result", async (req, res) => {
+app.post("/many/game/result", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, combineId3, combineId4 } = req.body;
 
     try {
@@ -728,7 +726,7 @@ app.post("/many/game/result", async (req, res) => {
 });
 
 // leaderboard
-app.get("/leaderboard", async (req, res) => {
+app.get("/leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
         const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(3);
@@ -740,7 +738,7 @@ app.get("/leaderboard", async (req, res) => {
 });
 
 // Monthly leaderboard
-app.get("/monthly-leaderboard", async (req, res) => {
+app.get("/monthly-leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
         const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(8);
@@ -752,7 +750,7 @@ app.get("/monthly-leaderboard", async (req, res) => {
 });
 
 // Add wallet amount
-app.post("/wallet/add", async (req, res) => {
+app.post("/wallet/add", authhentication, async (req, res) => {
     const { combineId, amount } = req.body;
 
     const username = await getUserById(combineId);
@@ -773,7 +771,7 @@ app.post("/wallet/add", async (req, res) => {
 });
 
 // Yearly Contest
-app.post("/yearly-contest", async (req, res) => {
+app.post("/yearly-contest", authhentication, async (req, res) => {
     const { contestId, newcombineId } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -794,7 +792,7 @@ app.post("/yearly-contest", async (req, res) => {
 });
 
 // Globli LeaderBoard
-app.post("/leaderboard/globle", async (req, res) => {
+app.post("/leaderboard/globle", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const user = await leaderboarddetail.findOne({ combineId });
@@ -847,3 +845,4 @@ app.post("/leaderboard/globle", async (req, res) => {
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
 });
+
