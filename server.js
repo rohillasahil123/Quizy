@@ -4,6 +4,7 @@ require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction");
 const authhentication = require("./authentication/authentication");
 const jwt = require("jsonwebtoken");
+PORT = process.env.PORT || 5000
 const bodyParser = require("body-parser");
 const otpGenerator = require("otp-generator");
 const PhoneNumber = require("./Model/phoneNumber.js");
@@ -845,11 +846,11 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 });
 
 
-app.get("/check",(req,res)=>{
-    res.json("try to check")
-})
+app.get('/check', (req, res) => {
+    res.send('Hello World');
+});
 
-app.listen(5000, () => {
-    console.log("Server is running on port 3000");
+app.listen(PORT, () => {
+    console.log("Server is running on port 5000");
 });
 
