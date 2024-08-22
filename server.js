@@ -1,8 +1,8 @@
 const express = require("express");
 const axios  = require("axios")
 require("./configfile/config.js");
-const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction");
-const authhentication = require("./authentication/authentication");
+const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
+const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
 PORT = process.env.PORT || 5000
 const bodyParser = require("body-parser");
@@ -16,7 +16,7 @@ const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
-const authenticate = require("./authentication/authentication");
+const authenticate = require("./authentication/authentication.js");
 
 const app = express();
 const secretKey = "credmantra";
@@ -38,7 +38,7 @@ app.post("/send-otp", async (req, res) => {
         specialChars: false,
         number: true,  
     });
-    const otpExpiration = new Date(Date.now() + 1 * 60 * 500);
+    const otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
     try {
         const updatedPhoneNumber = await PhoneNumber.findOneAndUpdate(
             { phoneNumber: phoneNumber },
