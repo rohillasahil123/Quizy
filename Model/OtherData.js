@@ -17,7 +17,7 @@ const studentSchema = new mongoose.Schema({
     selectEducation: { type: String, required: true, enum: ["School", "College", "Institute"] },
     fullname: { type: String, required: true },
     address: { type: String, required: true },
-    phoneNumber: { type: Number, required: true },
+    phoneNumber: { type: Number , required: true },
     schoolName: { type: String, required: true },
     schoolAddress: { type: String, required: true },
     boardOption: { type: String, required: true, enum: ["CBSE_Board", "ICSE_Board", "Other"] },
@@ -28,7 +28,7 @@ const studentSchema = new mongoose.Schema({
 
 // Combine the two schemas into a single schema
 const combineSchema = new mongoose.Schema({
-    studentDetails: { type: studentSchema },
+    studentDetails: { type: studentSchema , required : false },
     formDetails: { type: formSchema, required: false },
     score: { type: Number, default: 0 },
 });

@@ -89,6 +89,26 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
+
+app.get("/getdetails", async (req, res) => {
+    const { phoneNumber } = req.query;
+    try {
+        const number = await CombineDetails.find({
+            $or: [
+                { "formDetails.phoneNumber": phoneNumber },
+                { "studentDetails.phoneNumber": phoneNumber }
+            ]
+        });
+        console.log("Number:", number); 
+        res.send({ number, RequestedBy: phoneNumber }); 
+    } catch (error) {
+        console.log(error); // Log the error
+        res.status(500).json({ error: 'Internal Server Error' }); 
+    }
+});
+
+
+
 //save Password 
 app.post("/password", authhentication, async (req, res) => {
     const { phoneNumberId, password } = req.body;
@@ -830,7 +850,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
             }, 0);
             return {
                 combineId: entry.combineId,
-                combineuser: entry.combineuser,
+                   combineuser: entry.combineuser,
                 totalScore: userTotalScore,
             };
         });
@@ -844,7 +864,6 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
 
 app.get('/check', (req, res) => {
     res.send('Hello World');
