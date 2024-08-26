@@ -90,7 +90,7 @@ app.post("/verify-otp", async (req, res) => {
 });
 
 
-app.get("/getdetails", async (req, res) => {
+app.get("/getdetails",authhentication, async (req, res) => {
     const { phoneNumber } = req.query;
     try {
         const number = await CombineDetails.find({
