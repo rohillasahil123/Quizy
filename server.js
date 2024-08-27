@@ -72,14 +72,23 @@ app.post("/send-otp", async (req, res) => {
 //verify-Otp
 app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
-    try {
-        const phoneNumberData = await PhoneNumber.findOne({
-            phoneNumber: phoneNumber,
-        });
 
+    try {
+        const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: phoneNumber });
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
             const token = jwt.sign({ phoneNumber: phoneNumber }, secretKey, { expiresIn: "1h" });
-            res.json({ success: true, message: "OTP verified successfully", token });
+            res.json({
+                success: true,
+                message: "OTP verified successfully",
+                token,
+                fullname: null,
+                address: null,
+                email: null,
+                city: null,
+                state: null,
+                pincode: null,
+                dob: null
+            });
         } else {
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
@@ -90,7 +99,8 @@ app.post("/verify-otp", async (req, res) => {
 });
 
 
-app.get("/getdetails",authhentication, async (req, res) => {
+
+app.get("/getdetails" , authhentication , async (req, res) => {
     const { phoneNumber } = req.query;
     try {
         const number = await CombineDetails.find({
