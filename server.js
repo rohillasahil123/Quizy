@@ -74,22 +74,21 @@ app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
 
     try {
-        const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: phoneNumber });
+        const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
 
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
-            const token = jwt.sign({ phoneNumber: phoneNumber }, secretKey, { expiresIn: "1h" });
-
-            // Assuming _id is fetched from phoneNumberData, modify it accordingly if it's different
+            const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "1h" });
+            const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
             const user = {
-                _id: phoneNumberData._id, // Replace with actual _id
-                fullname: null,
-                address: null,
-                email: null,
-                city: null,
-                state: null,
-                pincode: null,
+                _id: userData ? userData._id : null, 
+                fullname: userData ? userData.formDetails.fullname : null,
+                address: userData ? userData.formDetails.address : null,
+                email: userData ? userData.formDetails.email : null,
+                city: userData ? userData.formDetails.city : null,
+                state: userData ? userData.formDetails.state : null,
+                pincode: userData ? userData.formDetails.pincode : null,
                 phoneNumber: phoneNumber,
-                dob: null
+                dob: userData ? userData.formDetails.dob : null
             };
 
             res.json({
@@ -224,7 +223,7 @@ app.post("/other/add", authhentication, async (req, res) => {
             error: "user details alerady save user details",
         });
     }
-});;
+});
 
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
