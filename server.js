@@ -75,19 +75,28 @@ app.post("/verify-otp", async (req, res) => {
 
     try {
         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: phoneNumber });
+
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
             const token = jwt.sign({ phoneNumber: phoneNumber }, secretKey, { expiresIn: "1h" });
-            res.json({
-                success: true,
-                message: "OTP verified successfully",
-                token,
+
+            // Assuming _id is fetched from phoneNumberData, modify it accordingly if it's different
+            const user = {
+                _id: phoneNumberData._id, // Replace with actual _id
                 fullname: null,
                 address: null,
                 email: null,
                 city: null,
                 state: null,
                 pincode: null,
+                phoneNumber: phoneNumber,
                 dob: null
+            };
+
+            res.json({
+                success: true,
+                message: "OTP verified successfully",
+                user: user,
+                token: token
             });
         } else {
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
