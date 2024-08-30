@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors")
 const axios  = require("axios")
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
@@ -24,6 +25,7 @@ const fast2smsAPIKey = 'kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bY
 
 app.use(express.json());
 app.use(bodyParser.json());
+app.use(cors())
 
 //Genrate-Otp Api
 app.post("/send-otp", async (req, res) => { 
