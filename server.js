@@ -16,7 +16,6 @@ const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
-const authenticate = require("./authentication/authentication.js");
 
 const app = express();
 const secretKey = "credmantra";
