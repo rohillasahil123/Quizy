@@ -3,8 +3,10 @@ const cors = require("cors")
 const axios  = require("axios")
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
-const authhentication = require("./authentication/authentication.js");
+const authhentication  = require("./authentication/authentication.js");
+const authCookiesJwt  = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser")
 PORT = process.env.PORT || 5000
 const bodyParser = require("body-parser");
 const otpGenerator = require("otp-generator");
@@ -26,6 +28,7 @@ const fast2smsAPIKey = 'kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bY
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cors())
+app.use(cookieParser());
 
 //Genrate-Otp Api
 app.post("/send-otp", async (req, res) => { 
@@ -62,6 +65,7 @@ app.post("/send-otp", async (req, res) => {
             message: "OTP generated successfully",  
             otp: `Dont share your Quizy code : ${otp} `,
         });
+        console.log(otp)
     } catch (err) {
         console.error("Error generating OTP:", err);
         res.status(500).json({
@@ -92,13 +96,14 @@ app.post("/verify-otp", async (req, res) => {
                 phoneNumber: phoneNumber,
                 dob: userData ? userData.formDetails.dob : null
             };
-
+            // Send JSON response
             res.json({
                 success: true,
                 message: "OTP verified successfully",
                 user: user,
                 token: token
             });
+          
         } else {
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
@@ -461,7 +466,7 @@ app.post("/answer", authhentication, async (req, res) => {
 
 //Other Data Answer
 app.post("/other/answer", authhentication, async (req, res) => {
-    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser  } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
@@ -473,6 +478,8 @@ app.post("/other/answer", authhentication, async (req, res) => {
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+
+        let contestScore = 0
 
         if (isCorrect) {
             combinedata.score += 1;
@@ -487,6 +494,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
                 });
             }
             leaderboardEntry.score += 1;
+
             await leaderboardEntry.save();
 
             let contest = await contestdetails.findById(contestId);
@@ -497,6 +505,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
             let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
             if (userContest) {
                 userContest.score += 1;
+                contestScore = userContest.score
                 await contest.save();
             }
         }
@@ -508,6 +517,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
             selectedOption,
             isCorrect,
             combineuser,
+            score : contestScore
         });
     } catch (err) {
         console.error(err);
