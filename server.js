@@ -1,12 +1,9 @@
 const express = require("express");
-const cors = require("cors")
 const axios  = require("axios")
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
 const authhentication  = require("./authentication/authentication.js");
-const authCookiesJwt  = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser")
 PORT = process.env.PORT || 5000
 const bodyParser = require("body-parser");
 const otpGenerator = require("otp-generator");
@@ -27,8 +24,7 @@ const fast2smsAPIKey = 'kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bY
 
 app.use(express.json());
 app.use(bodyParser.json());
-app.use(cors())
-app.use(cookieParser());
+
 
 //Genrate-Otp Api
 app.post("/send-otp", async (req, res) => { 
