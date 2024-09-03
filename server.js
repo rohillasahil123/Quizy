@@ -400,7 +400,7 @@ app.post("/other/question", authhentication, async (req, res) => {
     }
 });
 
-app.get("/get/score", async (req, res) => {
+app.get("/get/score",  authhentication, async (req, res) => {
     const { gkQuestionId, combineId, contestId, fullname } = req.query;
 
     try {
