@@ -78,7 +78,7 @@ app.post("/verify-otp", async (req, res) => {
         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
 
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
-            const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "1h" });
+            const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
             const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
             const user = {
                 _id: userData ? userData._id : null, 
@@ -126,8 +126,6 @@ app.get("/getdetails" , authhentication , async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' }); 
     }
 });
-
-
 
 //save Password 
 app.post("/password", authhentication, async (req, res) => {
@@ -383,7 +381,6 @@ app.post("/other/question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
-        console.log("urtyesdfgceacusd", othervalues);
         if (!othervalues) {
             return res.status(400).send({ message: "Data is not available" });
         }
@@ -402,6 +399,54 @@ app.post("/other/question", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
+
+app.get("/get/score", async (req, res) => {
+    const { gkQuestionId, combineId, contestId, fullname } = req.query;
+
+    try {
+        // Retrieve the GK Question details
+        const gkQuestionDetails = await gkQuestion.findById(gkQuestionId);
+        if (!gkQuestionDetails) {
+            return res.status(404).json({ error: "gkQuestion not found" });
+        }
+
+        // Retrieve the Combine Details
+        const combineDetail = await CombineDetails.findById(combineId);
+        if (!combineDetail) {
+            return res.status(404).json({ error: "Combine details not found" });
+        }
+
+        // Retrieve the Contest Data and filter the score for the specific combineId
+        const contestData = await contest.findById(contestId);
+        if (!contestData) {
+            return res.status(404).json({ error: "Contest not found" });
+        }
+
+        // Find the score for the given combineId within the contest
+        const participant = contestData.combineId.find(participant => participant.id.toString() === combineId);
+        if (!participant) {
+            return res.status(404).json({ error: "Participant not found in contest" });
+        }
+
+        // Respond with the score and other details
+        res.status(200).json({
+            fullname: fullname,
+            gkQuestionId: gkQuestionDetails._id,
+            combineId: combineDetail._id,
+            contestId: contestData._id,
+            score: participant.score
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+
+
+
+
 
 // Verify Answer Api
 app.post("/answer", authhentication, async (req, res) => {
