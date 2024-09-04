@@ -401,42 +401,26 @@ app.post("/other/question", authhentication, async (req, res) => {
 });
 
 app.get("/get/score",  authhentication, async (req, res) => {
-    const { gkQuestionId, combineId, contestId, fullname } = req.query;
-
+    const {  contestId , combineId } = req.query;
     try {
-        // Retrieve the GK Question details
-        const gkQuestionDetails = await gkQuestion.findById(gkQuestionId);
-        if (!gkQuestionDetails) {
-            return res.status(404).json({ error: "gkQuestion not found" });
-        }
-
-        // Retrieve the Combine Details
+    
         const combineDetail = await CombineDetails.findById(combineId);
         if (!combineDetail) {
             return res.status(404).json({ error: "Combine details not found" });
         }
-
-        // Retrieve the Contest Data and filter the score for the specific combineId
         const contestData = await contest.findById(contestId);
         if (!contestData) {
             return res.status(404).json({ error: "Contest not found" });
         }
-
-        // Find the score for the given combineId within the contest
         const participant = contestData.combineId.find(participant => participant.id.toString() === combineId);
         if (!participant) {
             return res.status(404).json({ error: "Participant not found in contest" });
         }
-
-        // Respond with the score and other details
         res.status(200).json({
-            fullname: fullname,
-            gkQuestionId: gkQuestionDetails._id,
             combineId: combineDetail._id,
             contestId: contestData._id,
             score: participant.score
         });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
