@@ -122,7 +122,7 @@ app.get("/getdetails" , authhentication , async (req, res) => {
         console.log("Number:", number); 
         res.send({ number, RequestedBy: phoneNumber }); 
     } catch (error) {
-        console.log(error); // Log the error
+        console.log(error); 
         res.status(500).json({ error: 'Internal Server Error' }); 
     }
 });
@@ -212,18 +212,41 @@ app.put("/forget/password", authhentication, async (req, res) => {
 app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
+        // Save the other details
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
 
+        // Check if the user already has a wallet
+        let wallet = await Wallet.findOne({ combineId: result._id });
+        const initialAmount = 500;
+
+        // If no wallet exists, create a new one with the initial balance of 500
+        if (!wallet) {
+            wallet = new Wallet({ combineId: result._id, balance: initialAmount });
+        } else {
+            // If wallet exists, just add the initial amount
+            wallet.balance += initialAmount;
+        }
+
+        // Save the wallet
+        await wallet.save();
+
+        // Log the transaction (for keeping track of the added amount)
+        const transaction = await logTransaction(result._id, initialAmount, "credit");
+
         console.log(result);
-        res.send(result);
+        res.send({
+            userDetails: result,
+            walletBalance: wallet.balance,
+        });
     } catch (error) {
         console.error("Error saving user details:", error);
         res.status(500).send({
-            error: "user details alerady save user details",
+            error: "User details already saved or another error occurred",
         });
     }
 });
+
 
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
