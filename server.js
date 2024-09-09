@@ -1,10 +1,11 @@
 const express = require("express");
-const axios  = require("axios")
+const mongoose = require ("mongoose")
+const axios = require("axios");
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
-const authhentication  = require("./authentication/authentication.js");
+const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
-PORT = process.env.PORT || 5000
+PORT = process.env.PORT || 5000;
 const bodyParser = require("body-parser");
 const otpGenerator = require("otp-generator");
 const PhoneNumber = require("./Model/phoneNumber.js");
@@ -19,14 +20,13 @@ const contest = require("./Model/contest.js");
 
 const app = express();
 const secretKey = "credmantra";
-const fast2smsAPIKey = 'kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f'
+const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
 
 app.use(express.json());
 app.use(bodyParser.json());
 
-
 //Genrate-Otp Api
-app.post("/send-otp", async (req, res) => { 
+app.post("/send-otp", async (req, res) => {
     const { phoneNumber } = req.body;
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
@@ -36,7 +36,7 @@ app.post("/send-otp", async (req, res) => {
         lowerCaseAlphabets: false,
         upperCaseAlphabets: false,
         specialChars: false,
-        number: true,  
+        number: true,
     });
     const otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
     try {
@@ -49,7 +49,7 @@ app.post("/send-otp", async (req, res) => {
             params: {
                 authorization: fast2smsAPIKey,
                 variables_values: otp,
-                route: "otp", 
+                route: "otp",
                 numbers: phoneNumber,
             },
         });
@@ -57,10 +57,10 @@ app.post("/send-otp", async (req, res) => {
         res.json({
             success: true,
             updatedPhoneNumber,
-            message: "OTP generated successfully",  
+            message: "OTP generated successfully",
             otp: `Dont share your Quizy code : ${otp} `,
         });
-        console.log(otp)
+        console.log(otp);
     } catch (err) {
         console.error("Error generating OTP:", err);
         res.status(500).json({
@@ -81,7 +81,7 @@ app.post("/verify-otp", async (req, res) => {
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
             const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
             const user = {
-                _id: userData ? userData._id : null, 
+                _id: userData ? userData._id : null,
                 fullname: userData ? userData.formDetails.fullname : null,
                 address: userData ? userData.formDetails.address : null,
                 email: userData ? userData.formDetails.email : null,
@@ -89,16 +89,15 @@ app.post("/verify-otp", async (req, res) => {
                 state: userData ? userData.formDetails.state : null,
                 pincode: userData ? userData.formDetails.pincode : null,
                 phoneNumber: phoneNumber,
-                dob: userData ? userData.formDetails.dob : null
+                dob: userData ? userData.formDetails.dob : null,
             };
             // Send JSON response
             res.json({
                 success: true,
                 message: "OTP verified successfully",
                 user: user,
-                token: token
+                token: token,
             });
-          
         } else {
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
@@ -108,26 +107,21 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
-
-
-app.get("/getdetails" , authhentication , async (req, res) => {
+app.get("/getdetails", authhentication, async (req, res) => {
     const { phoneNumber } = req.query;
     try {
         const number = await CombineDetails.find({
-            $or: [
-                { "formDetails.phoneNumber": phoneNumber },
-                { "studentDetails.phoneNumber": phoneNumber }
-            ]
+            $or: [{ "formDetails.phoneNumber": phoneNumber }, { "studentDetails.phoneNumber": phoneNumber }],
         });
-        console.log("Number:", number); 
-        res.send({ number, RequestedBy: phoneNumber }); 
+        console.log("Number:", number);
+        res.send({ number, RequestedBy: phoneNumber });
     } catch (error) {
-        console.log(error); 
-        res.status(500).json({ error: 'Internal Server Error' }); 
+        console.log(error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-//save Password 
+//save Password
 app.post("/password", authhentication, async (req, res) => {
     const { phoneNumberId, password } = req.body;
     try {
@@ -143,7 +137,6 @@ app.post("/password", authhentication, async (req, res) => {
         res.status(500).json({ message: "Failed to save password" });
     }
 });
-
 
 // password Match cardMantra
 app.post("/match/password", authhentication, async (req, res) => {
@@ -212,7 +205,6 @@ app.put("/forget/password", authhentication, async (req, res) => {
 app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
-        // Save the other details
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
@@ -232,11 +224,10 @@ app.post("/other/add", authhentication, async (req, res) => {
     } catch (error) {
         console.error("Error saving user details:", error);
         res.status(500).send({
-            error: "User details already saved or another error occurred",
+            error: "User details already saved  or another error occurred",
         });
     }
 });
-
 
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
@@ -413,10 +404,9 @@ app.post("/other/question", authhentication, async (req, res) => {
     }
 });
 
-app.get("/get/score",  authhentication, async (req, res) => {
-    const {  contestId , combineId } = req.query;
+app.get("/get/score", authhentication, async (req, res) => {
+    const { contestId, combineId } = req.query;
     try {
-    
         const combineDetail = await CombineDetails.findById(combineId);
         if (!combineDetail) {
             return res.status(404).json({ error: "Combine details not found" });
@@ -425,25 +415,20 @@ app.get("/get/score",  authhentication, async (req, res) => {
         if (!contestData) {
             return res.status(404).json({ error: "Contest not found" });
         }
-        const participant = contestData.combineId.find(participant => participant.id.toString() === combineId);
+        const participant = contestData.combineId.find((participant) => participant.id.toString() === combineId);
         if (!participant) {
             return res.status(404).json({ error: "Participant not found in contest" });
         }
         res.status(200).json({
             combineId: combineDetail._id,
             contestId: contestData._id,
-            score: participant.score
+            score: participant.score,
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server error" });
     }
 });
-
-
-
-
-
 
 // Verify Answer Api
 app.post("/answer", authhentication, async (req, res) => {
@@ -503,7 +488,7 @@ app.post("/answer", authhentication, async (req, res) => {
 
 //Other Data Answer
 app.post("/other/answer", authhentication, async (req, res) => {
-    const { combineId, contestId, gkquestionId, selectedOption, combineuser  } = req.body;
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
@@ -516,7 +501,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        let contestScore = 0
+        let contestScore = 0;
 
         if (isCorrect) {
             combinedata.score += 1;
@@ -542,7 +527,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
             let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
             if (userContest) {
                 userContest.score += 1;
-                contestScore = userContest.score
+                contestScore = userContest.score;
                 await contest.save();
             }
         }
@@ -554,7 +539,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
             selectedOption,
             isCorrect,
             combineuser,
-            score : contestScore
+            score: contestScore,
         });
     } catch (err) {
         console.error(err);
@@ -860,6 +845,24 @@ app.post("/wallet/add", authhentication, async (req, res) => {
     res.json({ balance: wallet.balance });
 });
 
+app.get("/getAmount", async (req, res) => {
+    const { combineId } = req.query;
+
+    try {
+        if (!mongoose.Types.ObjectId.isValid(combineId)) {
+            return res.status(400).json({ message: "Invalid combineId" });
+        }
+        const wallet = await Wallet.findOne({ combineId: new mongoose.Types.ObjectId(combineId) });
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        res.json(wallet);
+    } catch (error) {
+        console.error("Error fetching wallet:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 // Yearly Contest
 app.post("/yearly-contest", authhentication, async (req, res) => {
     const { contestId, newcombineId } = req.body;
@@ -917,7 +920,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
             }, 0);
             return {
                 combineId: entry.combineId,
-                   combineuser: entry.combineuser,
+                combineuser: entry.combineuser,
                 totalScore: userTotalScore,
             };
         });
@@ -932,11 +935,10 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-app.get('/check', (req, res) => {
-    res.send('Hello World');
+app.get("/check", (req, res) => {
+    res.send("Hello World");
 });
 
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
 });
-
