@@ -202,7 +202,7 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add", authhentication, async (req, res) => {
+app.post("/other/add", authhentication,  async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
@@ -845,7 +845,7 @@ app.post("/wallet/add", authhentication, async (req, res) => {
     res.json({ balance: wallet.balance });
 });
 
-app.get("/getAmount", async (req, res) => {
+app.get("/getAmount" ,authhentication, async (req, res) => {
     const { combineId } = req.query;
 
     try {

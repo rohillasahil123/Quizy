@@ -10,6 +10,7 @@ const formSchema = new mongoose.Schema({
     pincode: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     dob: { type: String, required: true },
+    _id: false 
 });
 
 // Define the student schema
