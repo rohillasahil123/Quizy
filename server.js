@@ -205,39 +205,30 @@ app.put("/forget/password", authhentication, async (req, res) => {
 app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
-       
-        const formDetails = {
-            ...req.body,
-            score: 0,
-            _id: new mongoose.Types.ObjectId(),
-        };
-        const data = new CombineDetails({ formDetails });
+        const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
-
-        let wallet = await Wallet.findOne({ combineId: result.formDetails._id });
+        let wallet = await Wallet.findOne({ combineId: result._id });
         const initialAmount = 500;
         if (!wallet) {
-            wallet = new Wallet({ combineId: result.formDetails._id, balance: initialAmount });
+            wallet = new Wallet({ combineId: result._id, balance: initialAmount });
         } else {
             wallet.balance += initialAmount;
         }
+        console.log(wallet)
         await wallet.save();
-        const transaction = await logTransaction(result.formDetails._id, initialAmount, "credit");
+        const transaction = await logTransaction(result._id, initialAmount, "credit");
         console.log(result);
-
         res.send({
-            result,
+            userDetails: result,
             walletBalance: wallet.balance,
         });
     } catch (error) {
         console.error("Error saving user details:", error);
         res.status(500).send({
-            error: "User details already saved or another error occurred",
+            error: "User details already saved  or another error occurred",
         });
     }
 });
-
-
 
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
