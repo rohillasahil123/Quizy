@@ -218,7 +218,7 @@ app.post("/other/add", authhentication,  async (req, res) => {
         const transaction = await logTransaction(result._id, initialAmount, "credit");
         console.log(result);
         res.send({
-            userDetails: result,
+              result,
             walletBalance: wallet.balance,
         });
     } catch (error) {
