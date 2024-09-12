@@ -1,5 +1,5 @@
 const express = require("express");
-const mongoose = require ("mongoose")
+const mongoose = require("mongoose");
 const axios = require("axios");
 require("./configfile/config.js");
 const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
@@ -202,19 +202,21 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add",  async (req, res) => {
+app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
+         // wallet amount 500  //
         const initialAmount = 500;
         if (!wallet) {
             wallet = new Wallet({ combineId: result._id, balance: initialAmount });
         } else {
             wallet.balance += initialAmount;
         }
-        console.log(wallet)
+        // Wallet //
+        console.log(wallet);
         await wallet.save();
         const transaction = await logTransaction(result._id, initialAmount, "credit");
         console.log(result);
@@ -846,7 +848,7 @@ app.post("/wallet/add", authhentication, async (req, res) => {
     res.json({ balance: wallet.balance });
 });
 
-app.get("/getAmount" ,authhentication, async (req, res) => {
+app.get("/getAmount", authhentication, async (req, res) => {
     const { combineId } = req.query;
 
     try {
