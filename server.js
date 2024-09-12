@@ -107,7 +107,7 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
-app.get("/getdetails", authhentication, async (req, res) => {
+app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
         const number = await CombineDetails.find({
@@ -202,13 +202,13 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add", authhentication, async (req, res) => {
+app.post("/other/add",  async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
-         // wallet amount 500  //
+
         const initialAmount = 500;
         if (!wallet) {
             wallet = new Wallet({ combineId: result._id, balance: initialAmount });
