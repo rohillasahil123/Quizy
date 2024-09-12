@@ -202,7 +202,7 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add",  async (req, res) => {
+app.post("/other/add", authhentication,  async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
