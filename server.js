@@ -202,51 +202,33 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add", async (req, res) => {
+app.post("/other/add",  async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
-        // Create a new ObjectId that will serve as both formDetails._id and combineId
-        const combineId = new mongoose.Types.ObjectId();
-
-        // Create the formDetails object, assigning combineId as the _id
-        const formDetails = {
-            ...req.body,
-            score: 0,  // Setting default score to 0
-            _id: combineId  // Assign combineId as formDetails._id
-        };
-
-        // Create a new document in CombineDetails with the formDetails
-        const data = new CombineDetails({ formDetails });
+        const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
-
-        // Find or create a wallet associated with the combineId
-        let wallet = await Wallet.findOne({ combineId });
+        let wallet = await Wallet.findOne({ combineId: result._id });
         const initialAmount = 500;
         if (!wallet) {
-            wallet = new Wallet({ combineId, balance: initialAmount });  // Use combineId
+            wallet = new Wallet({ combineId: result._id, balance: initialAmount });
         } else {
             wallet.balance += initialAmount;
         }
-
-        console.log(wallet);
+        console.log(wallet)
         await wallet.save();
-
-        // Log the transaction (assuming logTransaction is defined elsewhere)
-        const transaction = await logTransaction(combineId, initialAmount, "credit");
-
-        // Return the response with userDetails and walletBalance
+        const transaction = await logTransaction(result._id, initialAmount, "credit");
+        console.log(result);
         res.send({
-            userDetails: result,  // This includes formDetails with combineId as _id
+            userDetails: result,
             walletBalance: wallet.balance,
         });
     } catch (error) {
         console.error("Error saving user details:", error);
         res.status(500).send({
-            error: "User details already saved or another error occurred",
+            error: "User details already saved  or another error occurred",
         });
     }
 });
-
 
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {

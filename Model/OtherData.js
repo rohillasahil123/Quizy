@@ -10,8 +10,8 @@ const formSchema = new mongoose.Schema({
     pincode: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     dob: { type: String, required: true },
-    _id: false ,
     score: { type: Number, default: 0 },
+    _id:false
 });
 // Define the student schema
 const studentSchema = new mongoose.Schema({
@@ -30,7 +30,7 @@ const studentSchema = new mongoose.Schema({
 // Combine the two schemas into a single schema
 const combineSchema = new mongoose.Schema({
     studentDetails: { type: studentSchema , required : false },
-    formDetails: { type: formSchema, required: false },
+    formDetails: { type: formSchema, required: false  }
 });
 
 // Export the combined model
