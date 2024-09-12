@@ -12,9 +12,7 @@ const formSchema = new mongoose.Schema({
     dob: { type: String, required: true },
     _id: false ,
     score: { type: Number, default: 0 },
-    _id: mongoose.Schema.Types.ObjectId
 });
-
 // Define the student schema
 const studentSchema = new mongoose.Schema({
     selectEducation: { type: String, required: true, enum: ["School", "College", "Institute"] },
@@ -29,12 +27,10 @@ const studentSchema = new mongoose.Schema({
     aadharcard: { type: String, required: true },
     score: { type: Number, default: 0 },
 });
-
 // Combine the two schemas into a single schema
 const combineSchema = new mongoose.Schema({
     studentDetails: { type: studentSchema , required : false },
     formDetails: { type: formSchema, required: false },
-  
 });
 
 // Export the combined model
