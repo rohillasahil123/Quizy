@@ -86,6 +86,7 @@ app.post("/verify-otp", async (req, res) => {
                 address: userData ? userData.formDetails.address : null,
                 email: userData ? userData.formDetails.email : null,
                 city: userData ? userData.formDetails.city : null,
+                role:userData ? userData.formDetails.role : null,
                 state: userData ? userData.formDetails.state : null,
                 pincode: userData ? userData.formDetails.pincode : null,
                 phoneNumber: phoneNumber,
@@ -109,12 +110,28 @@ app.post("/verify-otp", async (req, res) => {
 
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
+
     try {
-        const number = await CombineDetails.find({
-            $or: [{ "formDetails.phoneNumber": phoneNumber }, { "studentDetails.phoneNumber": phoneNumber }],
+        const userData = await CombineDetails.findOne({
+            $or: [
+                { "formDetails.phoneNumber": phoneNumber },
+                { "studentDetails.phoneNumber": phoneNumber },
+            ],
         });
-        console.log("Number:", number);
-        res.send({ number, RequestedBy: phoneNumber });
+        const user = {
+            _id: userData ? userData._id : null,
+            fullname: userData ? userData.formDetails.fullname : null,
+            address: userData ? userData.formDetails.address : null,
+            email: userData ? userData.formDetails.email : null,
+            city: userData ? userData.formDetails.city : null,
+            role: userData ? userData.formDetails.role : null,
+            state: userData ? userData.formDetails.state : null,
+            pincode: userData ? userData.formDetails.pincode : null,
+            phoneNumber: phoneNumber,
+            dob: userData ? userData.formDetails.dob : null,
+        };
+        console.log("User Details:", user);
+        res.send({ user, RequestedBy: phoneNumber });
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Internal Server Error" });
