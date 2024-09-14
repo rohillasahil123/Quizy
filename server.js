@@ -73,25 +73,44 @@ app.post("/send-otp", async (req, res) => {
 //verify-Otp
 app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
-
     try {
         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
-
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
             const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
-            const user = {
-                _id: userData ? userData._id : null,
-                fullname: userData ? userData.formDetails.fullname : null,
-                address: userData ? userData.formDetails.address : null,
-                email: userData ? userData.formDetails.email : null,
-                city: userData ? userData.formDetails.city : null,
-                role:userData ? userData.formDetails.role : null,
-                state: userData ? userData.formDetails.state : null,
-                pincode: userData ? userData.formDetails.pincode : null,
-                phoneNumber: phoneNumber,
-                dob: userData ? userData.formDetails.dob : null,
-            };
+         
+                if(phoneNumber === formDetails.phoneNumber){
+                    const user = {
+                    _id: userData ? userData._id : null,
+                    fullname: userData ? userData.formDetails.fullname : null,
+                    address: userData ? userData.formDetails.address : null,
+                    email: userData ? userData.formDetails.email : null,
+                    city: userData ? userData.formDetails.city : null,
+                    role:userData ? userData.formDetails.role : null,
+                    state: userData ? userData.formDetails.state : null,
+                    pincode: userData ? userData.formDetails.pincode : null,
+                    phoneNumber: phoneNumber,
+                    dob: userData ? userData.formDetails.dob : null,
+                    }
+                }else if (phoneNumber === studentDetails.phoneNumber){
+                    const user = {
+                        _id: userData ? userData._id : null,
+                        fullname: userData ? userData.studentDetails.fullname : null,
+                        address: userData ? userData.studentDetails.address : null,
+                        boardOption: userData ? userData.studentDetails. boardOption : null,
+                        schoolName: userData ? userData.studentDetails.schoolName : null,
+                        role:userData ? userData.studentDetails.role : null,
+                        schoolAddress: userData ? userData.studentDetails.schoolAddress : null,
+                        selectEducation: userData ? userData.studentDetails.selectEducation : null,
+                        phoneNumber: phoneNumber,
+                        classvalue: userData ? userData.studentDetails.classvalue: null,
+                        mediumName: userData ? userData.studentDetails. mediumName: null,
+                        aadharcard: userData ? userData.studentDetails.aadharcard: null,
+                        }
+
+                }
+              
+        
             // Send JSON response
             res.json({
                 success: true,
@@ -824,7 +843,7 @@ app.post("/many/game/result", authhentication, async (req, res) => {
 app.get("/leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(3);
+        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(1000000000000000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);

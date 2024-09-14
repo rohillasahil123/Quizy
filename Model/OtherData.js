@@ -11,7 +11,6 @@ const formSchema = new mongoose.Schema({
     role  : { type:String , required:true , enum:["student" , "other"]  } ,
     phoneNumber: { type: String, required: true },
     dob: { type: String, required: true },
-    score: { type: Number, default: 0 },
     _id:false
 });
 // Define the student schema
@@ -27,12 +26,14 @@ const studentSchema = new mongoose.Schema({
     classvalue: { type: String, required: true },
     mediumName: { type: String, required: true, enum: ["English_Medium", "Hindi_Medium", "Other"] },
     aadharcard: { type: String, required: true },
-    score: { type: Number, default: 0 },
+    _id:false
+  
 });
 // Combine the two schemas into a single schema
 const combineSchema = new mongoose.Schema({
     studentDetails: { type: studentSchema , required : false },
-    formDetails: { type: formSchema, required: false  }
+    formDetails: { type: formSchema, required: false  },
+    score: { type: Number, default: 0 },
 });
 
 // Export the combined model
