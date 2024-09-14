@@ -78,8 +78,6 @@ app.post("/verify-otp", async (req, res) => {
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
             const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
-         
-                if(phoneNumber === formDetails.phoneNumber){
                     const user = {
                     _id: userData ? userData._id : null,
                     fullname: userData ? userData.formDetails.fullname : null,
@@ -91,26 +89,8 @@ app.post("/verify-otp", async (req, res) => {
                     pincode: userData ? userData.formDetails.pincode : null,
                     phoneNumber: phoneNumber,
                     dob: userData ? userData.formDetails.dob : null,
+                    
                     }
-                }else if (phoneNumber === studentDetails.phoneNumber){
-                    const user = {
-                        _id: userData ? userData._id : null,
-                        fullname: userData ? userData.studentDetails.fullname : null,
-                        address: userData ? userData.studentDetails.address : null,
-                        boardOption: userData ? userData.studentDetails. boardOption : null,
-                        schoolName: userData ? userData.studentDetails.schoolName : null,
-                        role:userData ? userData.studentDetails.role : null,
-                        schoolAddress: userData ? userData.studentDetails.schoolAddress : null,
-                        selectEducation: userData ? userData.studentDetails.selectEducation : null,
-                        phoneNumber: phoneNumber,
-                        classvalue: userData ? userData.studentDetails.classvalue: null,
-                        mediumName: userData ? userData.studentDetails. mediumName: null,
-                        aadharcard: userData ? userData.studentDetails.aadharcard: null,
-                        }
-
-                }
-              
-        
             // Send JSON response
             res.json({
                 success: true,
