@@ -26,6 +26,5 @@
     "otp-generator": "^4.0.1",
     "socket.io": "^4.7.5"
   },
-  "keywords": [],
-  "devDependencies": {}
+  "keywords": []
 }

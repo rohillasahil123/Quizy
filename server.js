@@ -78,19 +78,19 @@ app.post("/verify-otp", async (req, res) => {
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
             const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
-                    const user = {
-                    _id: userData ? userData._id : null,
-                    fullname: userData ? userData.formDetails.fullname : null,
-                    address: userData ? userData.formDetails.address : null,
-                    email: userData ? userData.formDetails.email : null,
-                    city: userData ? userData.formDetails.city : null,
-                    role:userData ? userData.formDetails.role : null,
-                    state: userData ? userData.formDetails.state : null,
-                    pincode: userData ? userData.formDetails.pincode : null,
-                    phoneNumber: phoneNumber,
-                    dob: userData ? userData.formDetails.dob : null,
-                    
-                    }
+            const user = {
+                _id: userData ? userData._id : null,
+                fullname: userData ? userData.formDetails.fullname : null,
+                address: userData ? userData.formDetails.address : null,
+                email: userData ? userData.formDetails.email : null,
+                city: userData ? userData.formDetails.city : null,
+                role: userData ? userData.formDetails.role : null,
+                state: userData ? userData.formDetails.state : null,
+                pincode: userData ? userData.formDetails.pincode : null,
+                phoneNumber: phoneNumber,
+                dob: userData ? userData.formDetails.dob : null,
+
+            }
             // Send JSON response
             res.json({
                 success: true,
@@ -218,7 +218,7 @@ app.put("/forget/password", authhentication, async (req, res) => {
 });
 
 //Other form Api
-app.post("/other/add", authhentication,  async (req, res) => {
+app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
         const data = new CombineDetails({ formDetails: req.body });
@@ -370,6 +370,9 @@ app.post("/join-game/many", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+
 
 // Student based Question
 app.post("/question", authhentication, async (req, res) => {
@@ -911,12 +914,10 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-
         const contests = await contestdetails.find();
         if (!contests || contests.length === 0) {
             return res.status(404).json({ message: "No contests found" });
         }
-
         let totalScore = 0;
         const userContests = contests
             .map((contest) => {
@@ -954,10 +955,42 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-app.get("/check", (req, res) => {
-    res.send("Hello World");
-});
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+app.post("/create-contest/time", async (req, res) => {
+    const { combineId, fullname, gameAmount } = req.body;
+    try {
+        await delay(10000);
+        const userData = await CombineDetails.findById(combineId);
+        if (!userData) {
+            console.error("User not found");
+            return res.status(404).json({ message: "User not found" });
+        }
+        const wallet = await getWalletBycombineId(combineId);
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        if (wallet.balance < gameAmount) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+        wallet.balance -= gameAmount;
+        await wallet.save();
+        await logTransaction(combineId, -gameAmount, "debit");
+        const newContest = new contestdetails({
+            combineId: [{ id: combineId, fullname: fullname }],
+        });
+        const savedContest = await newContest.save();
 
+        res.json({
+            message: "Contest created and user joined game successfully",
+            contestId: savedContest._id,
+            fullname,
+            balance: wallet.balance,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
 });
