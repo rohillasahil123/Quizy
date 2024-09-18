@@ -15,20 +15,20 @@ const formSchema = new mongoose.Schema({
 });
 // Define the student schema
 const studentSchema = new mongoose.Schema({
-    selectEducation: { type: String, required: true, enum: ["School", "College", "Institute"] },
+    selectEducation: { type: String, required: true },
     fullname: { type: String, required: true },
     address: { type: String, required: true },
     phoneNumber: { type: Number , required: true },
     schoolName: { type: String, required: true },
     schoolAddress: { type: String, required: true },
-    role  : { type:String , required:true , enum:["student" , "other"]  } ,
-    boardOption: { type: String, required: true, enum: ["CBSE_Board", "ICSE_Board", "Other"] },
+    role: { type: String, required: true },
+    boardOption: { type: String, required: true },
     classvalue: { type: String, required: true },
-    mediumName: { type: String, required: true, enum: ["English_Medium", "Hindi_Medium", "Other"] },
+    mediumName: { type: String, required: true },
     aadharcard: { type: String, required: true },
-    _id:false
-  
+    _id: false
 });
+
 // Combine the two schemas into a single schema
 const combineSchema = new mongoose.Schema({
     studentDetails: { type: studentSchema , required : false },

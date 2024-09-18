@@ -17,6 +17,7 @@ const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
+const validateStudentData =  require ("./Middelware/MiddelWare.js")
 
 const app = express();
 const secretKey = "credmantra";
@@ -251,7 +252,10 @@ app.post("/other/add", authhentication, async (req, res) => {
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
     try {
+        const studentData = req.body;
+        validateStudentData(studentData);
         const studentdata = new CombineDetails({ studentDetails: req.body });
+        validateStudentData(studentData);
         const studentResult = await studentdata.save();
         console.log("Student-Result", studentResult);
         res.send(studentResult);
@@ -320,6 +324,7 @@ app.post("/join-game", authhentication, async (req, res) => {
         }
         wallet.balance -= gameAmount;
         await wallet.save();
+        const participant = contestData
         await logTransaction(newcombineId, -gameAmount, "debit");
         contest.combineId.push({ id: newcombineId, fullname: fullname });
         await contest.save();
