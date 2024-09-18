@@ -112,24 +112,40 @@ app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
 
     try {
+        // Find the user either by formDetails or studentDetails
         const userData = await CombineDetails.findOne({
             $or: [
                 { "formDetails.phoneNumber": phoneNumber },
                 { "studentDetails.phoneNumber": phoneNumber },
             ],
         });
+
+        if (!userData) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Combine formDetails and studentDetails
         const user = {
-            _id: userData ? userData._id : null,
-            fullname: userData ? userData.formDetails.fullname : null,
-            address: userData ? userData.formDetails.address : null,
-            email: userData ? userData.formDetails.email : null,
-            city: userData ? userData.formDetails.city : null,
-            role: userData ? userData.formDetails.role : null,
-            state: userData ? userData.formDetails.state : null,
-            pincode: userData ? userData.formDetails.pincode : null,
+            _id: userData._id || null,
+            fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
+            address: userData.formDetails?.address || userData.studentDetails?.address || null,
+            email: userData.formDetails?.email || null,
+            city: userData.formDetails?.city || userData.studentDetails?.city || null,
+            role: userData.formDetails?.role || userData.studentDetails?.role || null,
+            state: userData.formDetails?.state || userData.studentDetails?.state || null,
+            pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
             phoneNumber: phoneNumber,
-            dob: userData ? userData.formDetails.dob : null,
+            dob: userData.formDetails?.dob || null,
+            // Additional fields from studentDetails if needed
+            schoolName: userData.studentDetails?.schoolName || null,
+            schoolAddress: userData.studentDetails?.schoolAddress || null,
+            selectEducation: userData.studentDetails?.selectEducation || null,
+            boardOption: userData.studentDetails?.boardOption || null,
+            classvalue: userData.studentDetails?.classvalue || null,
+            mediumName: userData.studentDetails?.mediumName || null,
+            aadharcard: userData.studentDetails?.aadharcard || null,
         };
+
         console.log("User Details:", user);
         res.send({ user, RequestedBy: phoneNumber });
     } catch (error) {
@@ -137,6 +153,7 @@ app.get("/getdetails", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
 
 //save Password
 app.post("/password", authhentication, async (req, res) => {
@@ -254,16 +271,34 @@ app.post("/student/add", authhentication, async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
-        const studentdata = new CombineDetails({ studentDetails: req.body });
-        validateStudentData(studentData);
+        const studentdata = new CombineDetails({ studentDetails: studentData });
         const studentResult = await studentdata.save();
-        console.log("Student-Result", studentResult);
-        res.send(studentResult);
+        console.log("Student-Result:", studentResult);
+        let wallet = await Wallet.findOne({ combineId: studentResult._id });
+        console.log("Existing Wallet:", wallet);
+        const initialAmount = 500;
+        if (!wallet) {
+            wallet = new Wallet({ combineId: studentResult._id, balance: initialAmount });
+            console.log("Created New Wallet:", wallet);
+        } else {
+            wallet.balance += initialAmount;
+            console.log("Updated Wallet Balance:", wallet);
+        }
+        await wallet.save();
+        console.log("Saved Wallet:", wallet);
+        await logTransaction(studentResult._id, initialAmount, "credit");
+        console.log("Logged Transaction");
+        res.send({
+            studentDetails: studentResult,
+            walletBalance: wallet.balance,
+        });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: "internel error" });
+        console.log("Error:", error);
+        res.status(500).json({ message: "Internal error" });
     }
 });
+
+
 
 // Create Contest
 app.post("/create-contest", authhentication, async (req, res) => {
