@@ -17,10 +17,10 @@ const authenticate = (req, res, next) => {
         return res.status(400).send({ message: "token authhentication failed" })
     }
     req.user = user
-    next()
+    next() 
 })}
 
-module.exports = authenticate  
+module.exports = authenticate
 
 
 

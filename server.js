@@ -75,24 +75,63 @@ app.post("/send-otp", async (req, res) => {
 app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
     try {
+        // Check OTP and its expiration
         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
+            // OTP is valid, proceed with generating token
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
-            const userData = await CombineDetails.findOne({ "formDetails.phoneNumber": phoneNumber });
-            const user = {
-                _id: userData ? userData._id : null,
-                fullname: userData ? userData.formDetails.fullname : null,
-                address: userData ? userData.formDetails.address : null,
-                email: userData ? userData.formDetails.email : null,
-                city: userData ? userData.formDetails.city : null,
-                role: userData ? userData.formDetails.role : null,
-                state: userData ? userData.formDetails.state : null,
-                pincode: userData ? userData.formDetails.pincode : null,
-                phoneNumber: phoneNumber,
-                dob: userData ? userData.formDetails.dob : null,
 
-            }
-            // Send JSON response
+            // Find user in CombineDetails by either formDetails or studentDetails
+            const userData = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.phoneNumber": phoneNumber },
+                    { "studentDetails.phoneNumber": phoneNumber },
+                ],
+            });
+
+            // Prepare the user object (null if no user data)
+            const user = userData ? {
+                _id: userData._id || null,
+                fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
+                address: userData.formDetails?.address || userData.studentDetails?.address || null,
+                email: userData.formDetails?.email || null,
+                city: userData.formDetails?.city || userData.studentDetails?.city || null,
+                role: userData.formDetails?.role || userData.studentDetails?.role || null,
+                state: userData.formDetails?.state || userData.studentDetails?.state || null,
+                pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
+                phoneNumber: phoneNumber,
+                dob: userData.formDetails?.dob || null,
+                // Additional fields from studentDetails
+                schoolName: userData.studentDetails?.schoolName || null,
+                schoolAddress: userData.studentDetails?.schoolAddress || null,
+                selectEducation: userData.studentDetails?.selectEducation || null,
+                boardOption: userData.studentDetails?.boardOption || null,
+                classvalue: userData.studentDetails?.classvalue || null,
+                mediumName: userData.studentDetails?.mediumName || null,
+                aadharcard: userData.studentDetails?.aadharcard || null,
+            } : {
+                // If userData is null, return all fields as null
+                _id: null,
+                fullname: null,
+                address: null,
+                email: null,
+                city: null,
+                role: null,
+                state: null,
+                pincode: null,
+                phoneNumber: phoneNumber, // This remains as phoneNumber
+                dob: null,
+                // Additional fields
+                schoolName: null,
+                schoolAddress: null,
+                selectEducation: null,
+                boardOption: null,
+                classvalue: null,
+                mediumName: null,
+                aadharcard: null,
+            };
+
+            // Send JSON response with user details and token
             res.json({
                 success: true,
                 message: "OTP verified successfully",
@@ -100,6 +139,7 @@ app.post("/verify-otp", async (req, res) => {
                 token: token,
             });
         } else {
+            // Invalid OTP or OTP expired
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
     } catch (err) {
@@ -108,9 +148,9 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
+
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
-
     try {
         // Find the user either by formDetails or studentDetails
         const userData = await CombineDetails.findOne({
@@ -118,8 +158,7 @@ app.get("/getdetails", async (req, res) => {
                 { "formDetails.phoneNumber": phoneNumber },
                 { "studentDetails.phoneNumber": phoneNumber },
             ],
-        });
-
+        })
         if (!userData) {
             return res.status(404).json({ message: "User not found" });
         }
