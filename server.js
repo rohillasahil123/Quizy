@@ -306,7 +306,7 @@ app.post("/other/add", authhentication, async (req, res) => {
 });
 
 //  Student Form
-app.post("/student/add", authhentication, async (req, res) => {
+app.post("/student/add", async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
@@ -532,7 +532,7 @@ app.get("/get/score", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/answer", authhentication, async (req, res) => {
+app.post("/answer",  async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -964,7 +964,7 @@ app.get("/getAmount", authhentication, async (req, res) => {
     }
 });
 
-// Yearly Contest
+// Yearly Contestf
 app.post("/yearly-contest", authhentication, async (req, res) => {
     const { contestId, newcombineId } = req.body;
     try {
