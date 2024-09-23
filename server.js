@@ -1070,6 +1070,15 @@ app.post("/create-contest/time", async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+app.get("/check" , async(req,res)=>{
+    res.send("hello server is Live")
+})
+
+
+
+
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
 });
