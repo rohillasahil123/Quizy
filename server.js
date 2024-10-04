@@ -363,9 +363,11 @@ app.post("/create-contest", authhentication, async (req, res) => {
             combineId: [{ id: combineId, fullname: fullname }],
         });
         const savedContest = await newContest.save();
+        // const contestData = await Contest.findById(savedContest._id).select('-participants._id');
+
         res.json({
             message: "Contest created and user joined game successfully",
-            contestId: savedContest._id,
+            contestId: savedContest,
             fullname,
             balance: wallet.balance,
         });
@@ -1108,35 +1110,32 @@ app.post("/school/join", authhentication, async (req, res) => {
     }
 });
 
+
+
 app.get("/contests", authhentication, async (req, res) => {
     try {
-        // Fetch all contests from the database
-        const contests = await contestdetails.find();
-
-        // Map through contests to create a detailed response
-        const contestsWithStatus = contests.map(contest => {
-            const isFull = contest.combineId.length >= 2; // Check if the contest is full
-
-            return {
-                isFull,
-                contestDetails: {
-                    combineId: contest.combineId, // Include participants' details
-                    __v: contest.__v // Include the version key if needed
-                },
-                gameAmount: 25 // Fixed game amount
-            };
-        });
-
-        // Send response with all contests and their statuses
-        res.send({
-            contests: contestsWithStatus,
-            message: "All contests retrieved successfully"
-        });
+      const contests = await contestdetails.find();
+      const contestsWithStatus = contests.map(contest => {
+        const isFull = contest.combineId.length >= 2;
+  
+        return {
+          contestId: contest._id, // Include the contest ID
+          isFull,
+          contestDetails: {
+            combineId: contest.combineId.map(({ _id, ...rest }) => rest), 
+          },
+          gameAmount: 25
+        };
+      });
+      res.send({
+        contests: contestsWithStatus,
+        message: "All contests retrieved successfully"
+      });
     } catch (error) {
-        console.error("Error:", error);
-        res.status(500).send("Internal server error");
+      console.error("Error:", error);
+      res.status(500).send("Internal server error");
     }
-});
+  });
 
 
 
