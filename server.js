@@ -17,7 +17,9 @@ const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
-const validateStudentData =  require ("./Middelware/MiddelWare.js")
+const validateStudentData = require("./Middelware/MiddelWare.js")
+const contestData = require("./Model/School.js")
+
 
 const app = express();
 const secretKey = "credmantra";
@@ -337,11 +339,10 @@ app.post("/student/add", async (req, res) => {
     }
 });
 
-
-
 // Create Contest
 app.post("/create-contest", authhentication, async (req, res) => {
-    const { combineId, fullname, gameAmount } = req.body;
+    const { combineId, fullname } = req.body;
+    const gameAmount = 25; 
     try {
         const userData = await CombineDetails.findById(combineId);
         if (!userData) {
@@ -373,6 +374,7 @@ app.post("/create-contest", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 // join game and cut amount
 app.post("/join-game", authhentication, async (req, res) => {
@@ -449,9 +451,6 @@ app.post("/join-game/many", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
 
 // Student based Question
 app.post("/question", authhentication, async (req, res) => {
@@ -532,7 +531,7 @@ app.get("/get/score", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/answer",  async (req, res) => {
+app.post("/answer", async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -1071,12 +1070,63 @@ app.post("/create-contest/time", async (req, res) => {
     }
 });
 
+app.post("/school/join", async (req, res) => {
+    try {
+        const { combineId } = req.body;
+        if (!combineId) {
+            return res.status(400).send("combineId is required");
+        }
+        const response = await CombineDetails.findById(combineId);
+        if (!response) {
+            return res.status(404).send("School not found");
+        }
+        const schoolName = response.studentDetails.schoolName;
+        let schoolcontest = await contestData.findOne({ schoolName });
+        if (!schoolcontest) {
+            schoolcontest = new contestData({ schoolName, participants: [] });
+        }
+        if (schoolcontest.participants.length >= 1000) {
+            return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
+        }
+        if (schoolcontest.participants.includes(combineId)) {
+            return res.status(400).send("This combineId has already joined the contest.");
+        }
+        schoolcontest.participants.push(combineId);
+        await schoolcontest.save();
+        res.send({ message: "Successfully joined the contest", schoolcontest });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
 
-app.get("/check" , async(req,res)=>{
-    res.send("hello server is Live")
-})
-
-
+app.get("/contests", async (req, res) => {
+    try {
+        const { contestId } = req.query;
+        const contests = await contestdetails.find();
+        if (contestId) {
+            const contest = contests.find(c => c._id.toString() === contestId);
+            if (!contest) {
+                return res.status(404).send("Contest not found");
+            }
+            const isFull = contest.combineId.length >= 2;
+            const gameAmount = 25;
+            return res.send({
+               
+                isFull,
+                contestDetails: contest,
+                gameAmount
+            });
+        }
+        res.send({
+            contests,
+            message: "All contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
 
 
 app.listen(PORT, () => {
