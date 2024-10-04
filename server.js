@@ -18,7 +18,7 @@ const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
-const contestData = require("./Model/School.js")
+// const contestData = require("./Model/School.js")
 
 
 const app = express();
@@ -1070,28 +1070,36 @@ app.post("/create-contest/time",authhentication, async (req, res) => {
     }
 });
 
-app.post("/school/join",authhentication, async (req, res) => {
+app.post("/school/join", authhentication, async (req, res) => {
     try {
-        const { combineId } = req.body;
-        if (!combineId) {
-            return res.status(400).send("combineId is required");
+        const { combineId, fullname } = req.body; 
+        if (!combineId || !fullname) {
+            return res.status(400).send("combineId and fullname are required");
         }
         const response = await CombineDetails.findById(combineId);
         if (!response) {
             return res.status(404).send("School not found");
         }
+        
         const schoolName = response.studentDetails.schoolName;
         let schoolcontest = await contestData.findOne({ schoolName });
         if (!schoolcontest) {
-            schoolcontest = new contestData({ schoolName, participants: [] });
+            const endingTime = new Date(); 
+            endingTime.setHours(endingTime.getHours() + 1); 
+            schoolcontest = new contestData({ schoolName, participants: [], endingTime });
         }
         if (schoolcontest.participants.length >= 1000) {
             return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
         }
-        if (schoolcontest.participants.includes(combineId)) {
+
+        if (schoolcontest.participants.some(participant => participant.combineId.toString() === combineId)) {
             return res.status(400).send("This combineId has already joined the contest.");
         }
-        schoolcontest.participants.push(combineId);
+        schoolcontest.participants.push({
+            combineId,
+            fullname,
+            joinedAt: Date.now()
+        });
         await schoolcontest.save();
         res.send({ message: "Successfully joined the contest", schoolcontest });
     } catch (error) {
@@ -1100,26 +1108,28 @@ app.post("/school/join",authhentication, async (req, res) => {
     }
 });
 
-app.get("/contests",authhentication, async (req, res) => {
+app.get("/contests", authhentication, async (req, res) => {
     try {
-        const { contestId } = req.query;
+        // Fetch all contests from the database
         const contests = await contestdetails.find();
-        if (contestId) {
-            const contest = contests.find(c => c._id.toString() === contestId);
-            if (!contest) {
-                return res.status(404).send("Contest not found");
-            }
-            const isFull = contest.combineId.length >= 2;
-            const gameAmount = 25;
-            return res.send({
-               
+
+        // Map through contests to create a detailed response
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2; // Check if the contest is full
+
+            return {
                 isFull,
-                contestDetails: contest,
-                gameAmount
-            });
-        }
+                contestDetails: {
+                    combineId: contest.combineId, // Include participants' details
+                    __v: contest.__v // Include the version key if needed
+                },
+                gameAmount: 25 // Fixed game amount
+            };
+        });
+
+        // Send response with all contests and their statuses
         res.send({
-            contests,
+            contests: contestsWithStatus,
             message: "All contests retrieved successfully"
         });
     } catch (error) {
@@ -1127,6 +1137,10 @@ app.get("/contests",authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+
+
+
 
 
 app.listen(PORT, () => {
