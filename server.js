@@ -308,7 +308,7 @@ app.post("/other/add", authhentication, async (req, res) => {
 });
 
 //  Student Form
-app.post("/student/add", async (req, res) => {
+app.post("/student/add",authhentication async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
@@ -531,7 +531,7 @@ app.get("/get/score", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/answer", async (req, res) => {
+app.post("/answer",authhentication, async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -1034,7 +1034,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 });
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-app.post("/create-contest/time", async (req, res) => {
+app.post("/create-contest/time",authhentication, async (req, res) => {
     const { combineId, fullname, gameAmount } = req.body;
     try {
         await delay(10000);
@@ -1070,7 +1070,7 @@ app.post("/create-contest/time", async (req, res) => {
     }
 });
 
-app.post("/school/join", async (req, res) => {
+app.post("/school/join",authhentication, async (req, res) => {
     try {
         const { combineId } = req.body;
         if (!combineId) {
@@ -1100,7 +1100,7 @@ app.post("/school/join", async (req, res) => {
     }
 });
 
-app.get("/contests", async (req, res) => {
+app.get("/contests",authhentication, async (req, res) => {
     try {
         const { contestId } = req.query;
         const contests = await contestdetails.find();
