@@ -363,8 +363,6 @@ app.post("/create-contest", authhentication, async (req, res) => {
             combineId: [{ id: combineId, fullname: fullname }],
         });
         const savedContest = await newContest.save();
-        // const contestData = await Contest.findById(savedContest._id).select('-participants._id');
-
         res.json({
             message: "Contest created and user joined game successfully",
             contestId: savedContest,
@@ -671,29 +669,37 @@ app.post("/game/compare", authhentication, async (req, res) => {
         } else {
             return res.status(200).json({ message: "It's a tie!", user1, user2 });
         }
+
         const winnerAmount = (winningAmount * 0.75);
         const walletAmount = (winningAmount * 0.25);
+
         if (winnerAmount > 0) {
             const winnerWallet = await getWalletBycombineId(winner.id);
             if (!winnerWallet) {
                 return res.status(404).json({ message: "Winner wallet not found" });
             }
+
             winnerWallet.balance += parseInt(winnerAmount);
             await updateWallet(winnerWallet);
             await logTransaction(winner.id, winnerAmount, "credit");
+            
+            // Generate a new ObjectId for the new wallet
+            const newWalletId = new mongoose.Types.ObjectId();
 
-            let newWallet = await getWalletBycombineId('new-wallet-id'); 
+            let newWallet = await getWalletBycombineId(newWalletId.toString());
             if (!newWallet) {
-                newWallet = new Wallet({ id: 'new-wallet-id', balance: 0 }); 
+                newWallet = new Wallet({ id: newWalletId, balance: 0 }); // Use the generated ObjectId
             }
+
             newWallet.balance += parseInt(walletAmount);
             await updateWallet(newWallet);
-            await logTransaction('new-wallet-id', walletAmount, "credit");
+            await logTransaction(newWalletId, walletAmount, "credit");
 
             return res.status(200).json({
                 message: "Winner determined and wallets updated",
                 winner: {
                     combineId: winner.id,
+                    name: winner.fullname,  // Include the winner's name
                     score: winner.score,
                     winnerWallet: winnerWallet.balance,
                     newWallet: newWallet.balance,
@@ -704,6 +710,7 @@ app.post("/game/compare", authhentication, async (req, res) => {
                 message: "Winner determined, but no amount to distribute",
                 winner: {
                     combineId: winner.id,
+                    name: winner.fullname,  // Include the winner's name
                     score: winner.score,
                 },
             });
@@ -713,6 +720,8 @@ app.post("/game/compare", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
+
+
 
 
 // Compare-Game-4 user
@@ -1114,25 +1123,26 @@ app.post("/school/join", authhentication, async (req, res) => {
     }
 });
 
-
 app.get("/contests", authhentication, async (req, res) => {
     try {
         const contests = await contestdetails.find();
-        const contestsWithStatus = contests.map(contest => {
-            const isFull = contest.combineId.length >= 2;
+        const contestsWithStatus = contests
+            .map(contest => {
+                const isFull = contest.combineId.length >= 2;
 
-            return {
-                contestId: contest._id,  // Contest ID
-                gameAmount: 25,           // Static game amount, modify as needed
-                winningAmount: 100,       // Static winning amount, modify as needed
-                isFull,
-                players: contest.combineId.map(player => ({
-                    combineId: player.id,     // Player's combine ID
-                    score: player.score,      // Player's score
-                    fullname: player.fullname  // Player's fullname
-                })),
-            };
-        });
+                return {
+                    contestId: contest._id,
+                    gameAmount: 25,
+                    winningAmount: 100,
+                    isFull,
+                    players: contest.combineId.map(player => ({
+                        combineId: player.id,
+                        score: player.score,
+                        fullname: player.fullname
+                    })),
+                };
+            })
+            .filter(contest => !contest.isFull); // Filter to show only contests where isFull is false
 
         res.send({
             contests: contestsWithStatus,
