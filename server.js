@@ -308,7 +308,7 @@ app.post("/other/add", authhentication, async (req, res) => {
 });
 
 //  Student Form
-app.post("/student/add",authhentication async (req, res) => {
+app.post("/student/add",authhentication , async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
