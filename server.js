@@ -645,7 +645,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
 });
 
 // Compare-Game-2 user
-app.post("/game/compare", authentication, async (req, res) => {
+app.post("/game/compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, winningAmount } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -684,7 +684,7 @@ app.post("/game/compare", authentication, async (req, res) => {
 
             let newWallet = await getWalletBycombineId('new-wallet-id'); 
             if (!newWallet) {
-                newWallet = new Wallet({ id: 'new-wallet-id', balance: 0 }); // Create a new wallet if it doesn't exist
+                newWallet = new Wallet({ id: 'new-wallet-id', balance: 0 }); 
             }
             newWallet.balance += parseInt(walletAmount);
             await updateWallet(newWallet);
