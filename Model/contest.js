@@ -13,21 +13,10 @@ const participantSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-}, {
-  toJSON: {
-    transform: (doc, ret) => {
-      delete ret._id; // Remove the _id field
-      return ret;
-    }
-  }
 });
 
 const contestSchema = new mongoose.Schema({
-  combineId: [participantSchema],
-}, {
-  toJSON: {
-    virtuals: true, // Include virtuals if any are used
-  }
+  combineId: [participantSchema]
 });
 
 module.exports = mongoose.model('Contest', contestSchema);
