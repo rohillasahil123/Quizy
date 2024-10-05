@@ -1,6 +1,7 @@
 const CombineDetails = require("../Model/OtherData")
 const Wallet = require('../Model/Wallet');
 const Transaction = require('../Model/Transation');
+const contestdetails = require("../Model/contest");
 
 
 
@@ -26,13 +27,35 @@ async function getUserById(combineId) {
     if(classvalue == "1st"){
       return "1st"
     }
-
   }
+
+  async function createMultipleContests(contestCount) {
+    const contests = [];
+    for (let i = 0; i < contestCount; i++) {
+        const newContest = new contestdetails({
+            combineId: [], // No participants at creation
+            maxParticipants: 2 // Limit to 2 participants
+        });
+        contests.push(await newContest.save());
+    }
+    return contests;
+}
+
+async function checkAndCreateMoreContests() {
+  const currentContestCount = await contestdetails.countDocuments();
+  if (currentContestCount >= 10) {
+      await createMultipleContests(20);
+      console.log("Automatically created 20 more contests.");
+  }
+}
+
 
   module.exports = {
     getUserById,
     getWalletBycombineId,
     updateWallet,
-    logTransaction
+    logTransaction,
+    createMultipleContests,
+    checkAndCreateMoreContests
 };
   

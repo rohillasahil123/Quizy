@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 require("./configfile/config.js");
-const { getUserById, getWalletBycombineId, updateWallet, logTransaction } = require("./Helper/helperFunction.js");
+const { getUserById, getWalletBycombineId, updateWallet, logTransaction,checkAndCreateMoreContests,createMultipleContests } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
 PORT = process.env.PORT || 5000;
@@ -375,97 +375,70 @@ app.post("/create-contest", authhentication, async (req, res) => {
     }
 });
 
-// const createContestAutomatically = async () => {
-//     const gameAmount = 25; 
-//     try {
-//         const allUsers = await CombineDetails.find(); 
-//         for (const user of allUsers) {
-//             const wallet = await getWalletBycombineId(user._id); 
-//             if (!wallet) {
-//                 console.error(`Wallet not found for user ${user._id}`);
-//                 continue;
-//             }
+//now start
 
-//             if (wallet.balance < gameAmount) {
-//                 console.error(`Insufficient balance for user ${user._id}`);
-//                 continue;
-//             }
-//             wallet.balance -= gameAmount;
-//             await wallet.save();
-//             await logTransaction(user._id, -gameAmount, "debit"); 
+app.post("/create-contests", authhentication, async (req, res) => {
+    const initialContestCount = 20; 
+    try {
+        const contests = await createMultipleContests(initialContestCount);
+        res.json({
+            message: "20 contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
-//             // Create a new contest
-//             const newContest = new contestdetails({
-//                 combineId: [{ id: user._id, fullname: user.fullname }],
-//             });
-//             await newContest.save();
+app.post("/join-contest", authhentication, async (req, res) => {
+    const { contestId, combineId, fullname } = req.body;
+    const gameAmount = 25;
 
-//             console.log(`Contest created successfully for user ${user._id}`);
-//         }
-//     } catch (err) {
-//         console.error("Error creating contests:", err);
-//     }
-// };
+    try {
+        const wallet = await getWalletBycombineId(combineId);
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        
+        if (wallet.balance < gameAmount) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
 
-// // Schedule the job to run every hour (adjust as needed)
-// cron.schedule("0 * * * *", createContestAutomatically); // This runs at the start of every hour
+        const contest = await contestdetails.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
 
-// // Your existing /create-contest endpoint
-// app.post("/create-contest", authentication, async (req, res) => {
-//     const { combineId, fullname } = req.body;
-//     const gameAmount = 25;
+        // Check if the contest is full
+        if (contest.combineId.length >= contest.maxParticipants) {
+            return res.status(400).json({ message: "Contest is already full" });
+        }
 
-//     try {
-//         const userData = await CombineDetails.findById(combineId);
-//         if (!userData) {
-//             console.error("User not found");
-//             return res.status(404).json({ message: "User not found" });
-//         }
-//         const wallet = await getWalletBycombineId(combineId);
-//         if (!wallet) {
-//             return res.status(404).json({ message: "Wallet not found" });
-//         }
-//         if (wallet.balance < gameAmount) {
-//             return res.status(400).json({ message: "Insufficient balance" });
-//         }
-//         wallet.balance -= gameAmount;
-//         await wallet.save();
-//         await logTransaction(combineId, -gameAmount, "debit");
-//         const newContest = new contestdetails({
-//             combineId: [{ id: combineId, fullname: fullname }],
-//         });
-//         const savedContest = await newContest.save();
-//         res.json({
-//             message: "Contest created and user joined game successfully",
-//             contestId: savedContest,
-//             fullname,
-//             balance: wallet.balance,
-//         });
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ message: "Server Error" });
-//     }
-// });
+        // Add participant to the contest
+        contest.combineId.push({ id: combineId, fullname: fullname });
+        await contest.save();
+
+        // Deduct the game amount from wallet
+        wallet.balance -= gameAmount;
+        await wallet.save();
+        await logTransaction(combineId, -gameAmount, "debit");
+
+        // Check and create more contests if needed
+        await checkAndCreateMoreContests();
+
+        res.json({
+            message: "Successfully joined the contest",
+            balance: wallet.balance,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//now ended
 
 // join game and cut amount
 app.post("/join-game", authhentication, async (req, res) => {
