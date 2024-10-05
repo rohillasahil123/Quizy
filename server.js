@@ -409,24 +409,15 @@ app.post("/join-contest", authhentication, async (req, res) => {
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-
-        // Check if the contest is full
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
         }
-
-        // Add participant to the contest
         contest.combineId.push({ id: combineId, fullname: fullname });
         await contest.save();
-
-        // Deduct the game amount from wallet
         wallet.balance -= gameAmount;
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
-
-        // Check and create more contests if needed
         await checkAndCreateMoreContests();
-
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,

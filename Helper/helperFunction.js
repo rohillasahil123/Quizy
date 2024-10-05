@@ -2,6 +2,7 @@ const CombineDetails = require("../Model/OtherData")
 const Wallet = require('../Model/Wallet');
 const Transaction = require('../Model/Transation');
 const contestdetails = require("../Model/contest");
+const cron = require('node-cron');
 
 
 
@@ -33,25 +34,43 @@ async function getUserById(combineId) {
     const contests = [];
     for (let i = 0; i < contestCount; i++) {
         const newContest = new contestdetails({
-            combineId: [], // No participants at creation
-            maxParticipants: 2 // Limit to 2 participants
+            combineId: [], 
+            maxParticipants: 2 
         });
         contests.push(await newContest.save());
     }
     return contests;
 }
 
-async function checkAndCreateMoreContests() {
-  const currentContestCount = await contestdetails.countDocuments();
-  if (currentContestCount >= 10) {
-    const contests = await contestdetails.find().limit(10);
-    const allContestsFull = contests.every(contest => contest.userCount >= 2);
-    if (allContestsFull) {
-      await createMultipleContests(10);
-      console.log("Automatically created 10 more contests.");
+const checkAndCreateMoreContests = async () => {
+  try {
+    // Get the current count of contests in the database
+    const currentContestCount = await contestdetails.countDocuments();
+
+    // Check if there are 9 or fewer contests
+    if (currentContestCount <= 9) {
+      // Fetch all contests to check their user counts
+      const contests = await contestdetails.find();
+
+      // Check if all contests are empty (less than 2 users)
+      const allContestsEmpty = contests.every(contest => contest.userCount < 2);
+
+      // If all contests are empty, create new contests
+      if (allContestsEmpty) {
+        await createMultipleContests(10); // Creates 10 new contests
+        console.log("Automatically created 10 more contests.");
+      }
     }
+  } catch (error) {
+    console.error("Error checking or creating contests:", error);
   }
-}
+};
+
+// Run the check every 5 minutes (300000 ms)
+setInterval(checkAndCreateMoreContests, 300000);
+
+
+cron.schedule('*/5 * * * *', checkAndCreateMoreContests);
 
 
 
