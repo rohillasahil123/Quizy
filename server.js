@@ -340,87 +340,9 @@ app.post("/student/add", authhentication, async (req, res) => {
 });
 
 // Create Contest
-// app.post("/create-contest", authhentication, async (req, res) => {
-//     const { combineId, fullname } = req.body;
-//     const gameAmount = 25;
-//     try {
-//         const userData = await CombineDetails.findById(combineId);
-//         if (!userData) {
-//             console.error("User not found");
-//             return res.status(404).json({ message: "User not found" });
-//         }
-//         const wallet = await getWalletBycombineId(combineId);
-//         if (!wallet) {
-//             return res.status(404).json({ message: "Wallet not found" });
-//         }
-//         if (wallet.balance < gameAmount) {
-//             return res.status(400).json({ message: "Insufficient balance" });
-//         }
-//         wallet.balance -= gameAmount;
-//         await wallet.save();
-//         await logTransaction(combineId, -gameAmount, "debit");
-//         const newContest = new contestdetails({
-//             combineId: [{ id: combineId, fullname: fullname }],
-//         });
-//         const savedContest = await newContest.save();
-//         res.json({
-//             message: "Contest created and user joined game successfully",
-//             contestId: savedContest,
-//             fullname,
-//             balance: wallet.balance,
-//         });
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ message: "Server Error" });
-//     }
-// });
-
-
-
-
-
-
-
-const createContestAutomatically = async () => {
-    const gameAmount = 25; 
-    try {
-        const allUsers = await CombineDetails.find(); 
-        for (const user of allUsers) {
-            const wallet = await getWalletBycombineId(user._id); 
-            if (!wallet) {
-                console.error(`Wallet not found for user ${user._id}`);
-                continue;
-            }
-
-            if (wallet.balance < gameAmount) {
-                console.error(`Insufficient balance for user ${user._id}`);
-                continue;
-            }
-            wallet.balance -= gameAmount;
-            await wallet.save();
-            await logTransaction(user._id, -gameAmount, "debit"); 
-
-            // Create a new contest
-            const newContest = new contestdetails({
-                combineId: [{ id: user._id, fullname: user.fullname }],
-            });
-            await newContest.save();
-
-            console.log(`Contest created successfully for user ${user._id}`);
-        }
-    } catch (err) {
-        console.error("Error creating contests:", err);
-    }
-};
-
-// Schedule the job to run every hour (adjust as needed)
-cron.schedule("0 * * * *", createContestAutomatically); // This runs at the start of every hour
-
-// Your existing /create-contest endpoint
-app.post("/create-contest", authentication, async (req, res) => {
+app.post("/create-contest", authhentication, async (req, res) => {
     const { combineId, fullname } = req.body;
     const gameAmount = 25;
-
     try {
         const userData = await CombineDetails.findById(combineId);
         if (!userData) {
@@ -452,6 +374,78 @@ app.post("/create-contest", authentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+// const createContestAutomatically = async () => {
+//     const gameAmount = 25; 
+//     try {
+//         const allUsers = await CombineDetails.find(); 
+//         for (const user of allUsers) {
+//             const wallet = await getWalletBycombineId(user._id); 
+//             if (!wallet) {
+//                 console.error(`Wallet not found for user ${user._id}`);
+//                 continue;
+//             }
+
+//             if (wallet.balance < gameAmount) {
+//                 console.error(`Insufficient balance for user ${user._id}`);
+//                 continue;
+//             }
+//             wallet.balance -= gameAmount;
+//             await wallet.save();
+//             await logTransaction(user._id, -gameAmount, "debit"); 
+
+//             // Create a new contest
+//             const newContest = new contestdetails({
+//                 combineId: [{ id: user._id, fullname: user.fullname }],
+//             });
+//             await newContest.save();
+
+//             console.log(`Contest created successfully for user ${user._id}`);
+//         }
+//     } catch (err) {
+//         console.error("Error creating contests:", err);
+//     }
+// };
+
+// // Schedule the job to run every hour (adjust as needed)
+// cron.schedule("0 * * * *", createContestAutomatically); // This runs at the start of every hour
+
+// // Your existing /create-contest endpoint
+// app.post("/create-contest", authentication, async (req, res) => {
+//     const { combineId, fullname } = req.body;
+//     const gameAmount = 25;
+
+//     try {
+//         const userData = await CombineDetails.findById(combineId);
+//         if (!userData) {
+//             console.error("User not found");
+//             return res.status(404).json({ message: "User not found" });
+//         }
+//         const wallet = await getWalletBycombineId(combineId);
+//         if (!wallet) {
+//             return res.status(404).json({ message: "Wallet not found" });
+//         }
+//         if (wallet.balance < gameAmount) {
+//             return res.status(400).json({ message: "Insufficient balance" });
+//         }
+//         wallet.balance -= gameAmount;
+//         await wallet.save();
+//         await logTransaction(combineId, -gameAmount, "debit");
+//         const newContest = new contestdetails({
+//             combineId: [{ id: combineId, fullname: fullname }],
+//         });
+//         const savedContest = await newContest.save();
+//         res.json({
+//             message: "Contest created and user joined game successfully",
+//             contestId: savedContest,
+//             fullname,
+//             balance: wallet.balance,
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: "Server Error" });
+//     }
+// });
 
 
 
@@ -1235,7 +1229,7 @@ app.get("/contests", authhentication, async (req, res) => {
                     })),
                 };
             })
-            .filter(contest => !contest.isFull); // Filter to show only contests where isFull is false
+            .filter(contest => !contest.isFull); 
 
         res.send({
             contests: contestsWithStatus,
@@ -1249,20 +1243,19 @@ app.get("/contests", authhentication, async (req, res) => {
 
 
 app.get("/contestdata", authhentication, async (req, res) => {
-    const { id } = req.query; // Get contest ID from query parameters
+    const { id } = req.query; 
 
     try {
         let contests;
         
         if (id) {
-            // If an ID is provided, find that specific contest
             contests = await contestdetails.findById(id);
             if (!contests) {
                 return res.status(404).send({ message: "Contest not found" });
             }
-            contests = [contests]; // Wrap in an array for consistency
+            contests = [contests]; 
         } else {
-            // Otherwise, find all contests
+          
             contests = await contestdetails.find();
         }
 
