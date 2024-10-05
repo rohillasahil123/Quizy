@@ -377,7 +377,7 @@ app.post("/student/add", authhentication, async (req, res) => {
 
 //now start
 
-app.post("/create-contests", authhentication, async (req, res) => {
+app.post("/create-contest", authhentication, async (req, res) => {
     const initialContestCount = 20; 
     try {
         const contests = await createMultipleContests(initialContestCount);

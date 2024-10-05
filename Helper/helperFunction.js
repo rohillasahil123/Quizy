@@ -44,10 +44,15 @@ async function getUserById(combineId) {
 async function checkAndCreateMoreContests() {
   const currentContestCount = await contestdetails.countDocuments();
   if (currentContestCount >= 10) {
-      await createMultipleContests(20);
-      console.log("Automatically created 20 more contests.");
+    const contests = await contestdetails.find().limit(10);
+    const allContestsFull = contests.every(contest => contest.userCount >= 2);
+    if (allContestsFull) {
+      await createMultipleContests(10);
+      console.log("Automatically created 10 more contests.");
+    }
   }
 }
+
 
 
   module.exports = {
