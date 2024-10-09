@@ -2,6 +2,7 @@ const CombineDetails = require("../Model/OtherData")
 const Wallet = require('../Model/Wallet');
 const Transaction = require('../Model/Transation');
 const contestdetails = require("../Model/contest");
+const monthContest = require ("../Model/MonthlyContest.js")
 
 
 
@@ -41,17 +42,43 @@ async function getUserById(combineId) {
     return contests;
 }
 
+
+
+
 async function checkAndCreateMoreContests() {
-  const currentContestCount = await contestdetails.countDocuments();
-  if (currentContestCount <= 10) {
-    const contests = await contestdetails.find().limit(10);
-    const allContestsFull = contests.every(contest => contest.userCount >= 2);
-    if (allContestsFull) {
+  try {
+    const currentContestCount = await contestdetails.countDocuments();
+    if (currentContestCount <= 10) {
+      console.log("There are 10 or fewer contests, creating new contests...");
       await createMultipleContests(10);
-      console.log("Automatically created 10 more contests.");
+      console.log("Successfully created 10 more contests.");
+    } else {
+      console.log("There are more than 10 contests. No new contests created.");
     }
+  } catch (error) {
+    console.error("Error while checking and creating contests:", error);
   }
 }
+
+
+
+
+
+//  MOnthly contest
+  async function createMonthlyMultipleContests(contestCount) {
+    const contest = [];
+    for (let i = 0; i < contestCount; i++) {
+        const newContest = new monthContest({
+            combineId: [], 
+            maxParticipants: 2 
+        });
+        contest.push(await newContest.save());
+    }
+    return contest;
+}
+
+
+
 
 
 
@@ -61,6 +88,7 @@ async function checkAndCreateMoreContests() {
     updateWallet,
     logTransaction,
     createMultipleContests,
-    checkAndCreateMoreContests
+    checkAndCreateMoreContests,
+    createMonthlyMultipleContests
 };
   

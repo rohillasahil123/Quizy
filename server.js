@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 require("./configfile/config.js");
-const { getUserById, getWalletBycombineId, updateWallet, logTransaction, checkAndCreateMoreContests, createMultipleContests } = require("./Helper/helperFunction.js");
+const { getUserById, getWalletBycombineId, updateWallet, logTransaction, checkAndCreateMoreContests, createMultipleContests , createMonthlyMultipleContests } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
 PORT = process.env.PORT || 5000;
@@ -19,6 +19,7 @@ const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 // const contestData = require("./Model/School.js")
+const monthContest = require ("./Model/MonthlyContest.js")
 
 
 const app = express();
@@ -27,6 +28,10 @@ const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bY
 
 app.use(express.json());
 app.use(bodyParser.json());
+
+
+
+// Login needed Api Start
 
 //Genrate-Otp Api
 app.post("/send-otp", async (req, res) => {
@@ -195,6 +200,9 @@ app.get("/getdetails", async (req, res) => {
     }
 });
 
+// Login needed Api End
+
+
 
 //save Password
 app.post("/password", authhentication, async (req, res) => {
@@ -276,6 +284,11 @@ app.put("/forget/password", authhentication, async (req, res) => {
     }
 });
 
+
+
+
+// Form Student or other start 
+
 //Other form Api
 app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
@@ -339,11 +352,17 @@ app.post("/student/add", authhentication, async (req, res) => {
     }
 });
 
-// Create Contest
+// Form Student or other End
+
+
+
+
+
+// Create Contest Start 
 //now start
 
 app.post("/create-contest", authhentication, async (req, res) => {
-    const initialContestCount = 20;
+    const initialContestCount = 11;
     try {
         const contests = await createMultipleContests(initialContestCount);
         res.json({
@@ -359,17 +378,14 @@ app.post("/create-contest", authhentication, async (req, res) => {
 app.post("/join-contest", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 25;
-
     try {
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
         }
-
         if (wallet.balance < gameAmount) {
             return res.status(400).json({ message: "Insufficient balance" });
         }
-
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
@@ -382,7 +398,7 @@ app.post("/join-contest", authhentication, async (req, res) => {
         wallet.balance -= gameAmount;
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
-        await checkAndCreateMoreContests();
+        await checkAndCreateMoreContests(); 
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
@@ -393,7 +409,6 @@ app.post("/join-contest", authhentication, async (req, res) => {
     }
 });
 
-//now ended
 
 // join game and cut amount
 app.post("/join-game", authhentication, async (req, res) => {
@@ -470,6 +485,14 @@ app.post("/join-game/many", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+// join and create Contest ended
+
+
+
+
+// Question  And Answer Api 
 
 // Student based Question
 app.post("/question", authhentication, async (req, res) => {
@@ -660,6 +683,11 @@ app.post("/other/answer", authhentication, async (req, res) => {
     }
 });
 
+
+
+
+// Game Compare Two or Four Start
+
 // Compare-Game-2 user
 app.post("/game/compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, winningAmount } = req.body;
@@ -807,6 +835,13 @@ app.post("/many/game/compare", authhentication, async (req, res) => {
     }
 });
 
+// Game Compare Two or Four end
+
+
+
+// leaderboard start 
+
+
 // game Leaderboard user-2
 app.post("/game/result", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2 } = req.body;
@@ -931,20 +966,52 @@ app.post("/many/game/result", authhentication, async (req, res) => {
 });
 
 
+// leaderboard end
+
+
+
+
+// Monthly Start  create 
+app.post("/monthly-contest", async (req, res) => {
+    const initialContestCount = 20;
+    try {
+        const contests = await createMonthlyMultipleContests(initialContestCount);
+        res.json({
+            message: "20 contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
+
+
+
+
+
+
+
 app.post("/monthly/contest", authhentication, async (req, res) => {
     const { contestId, newcombineId } = req.body;
     try {
-        const contest = await contestdetails.findById(contestId);
-        console.log("id", contest);
+        const contest = await monthContest.findById(contestId);
+     
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-        if (contest.combineId.length >= 100000) {
+        if (contest.combineId.length >= 10000) {
             return res.status(400).json({ message: "Contest fully" });
         }
-        contest.combineId.push(newcombineId);
-        await contest.save();
-        res.json({ message: `User ${newcombineId} joined contest`, contestId });
+         const sanju = contest.combineId.push(newcombineId);
+          console.log("id", contestId , newcombineId);
+          console.log("sanju" , sanju);
+
+        //    await contest.save();
+      
+        // res.json({ message: `User ${newcombineId} joined contest`, contestId });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
