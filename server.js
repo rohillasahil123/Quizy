@@ -20,6 +20,7 @@ const contest = require("./Model/contest.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 // const contestData = require("./Model/School.js")
 const monthContest = require ("./Model/MonthlyContest.js")
+const practiceContest = require("./Model/Practice_Contest.js")
 
 
 const app = express();
@@ -488,6 +489,24 @@ app.post("/join-game/many", authhentication, async (req, res) => {
 
 
 // join and create Contest ended
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1295,6 +1314,127 @@ app.get("/contestdata", authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+
+
+
+
+// practice  Contest
+
+app.post("/practice_Contest",  authhentication, async (req, res) => {
+    try {
+        const { combineId, fullName } = req.body;
+        const newContest = new practiceContest({
+            combineId: combineId, 
+            fullName: fullName,
+            createdAt: new Date()
+        });
+        await newContest.save();
+        return res.status(201).json({
+            message: "Contest created successfully",
+            contest: newContest
+        });
+    } catch (error) {
+        return res.status(500).json({ error: "An error occurred while creating the contest" });
+    }
+});
+
+
+app.post("/practice_question", authhentication,  async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "Data is not available" });
+        }
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+app.post("/practice_answer", async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+    
+    try {
+        // Step 1: Find the question
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+
+        // Step 2: Check if the selected option is correct
+        const isCorrect = question.correctAnswer === selectedOption;
+
+        // Step 3: Find the user (combineId)
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let contestScore = 0;
+
+        if (isCorrect) {
+            // Step 4: Update the user's total score
+            combinedata.score += 1;
+            await combinedata.save();
+
+            // Step 5: Update leaderboard
+            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            if (!leaderboardEntry) {
+                leaderboardEntry = new leaderboarddetail({
+                    combineId,
+                    combineuser,
+                    score: 0,
+                });
+            }
+            leaderboardEntry.score += 1;
+            await leaderboardEntry.save();
+
+            // Step 6: Find the contest and update the score
+            let contest = await practiceContest.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+
+            // Check if the combineId matches the user
+            if (contest.combineId.toString() === combineId.toString()) {
+                // Since combineId is no longer an array, just update the contest record
+                contestScore += 1;
+                await contest.save();
+            } else {
+                return res.status(404).json({ message: "User not part of this contest" });
+            }
+        }
+
+        // Step 7: Send response
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
 
 
 
