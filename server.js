@@ -1064,13 +1064,28 @@ app.post("/many/game/result", authhentication, async (req, res) => {
     }
 });
 
+// leaderboard
+app.get("/leaderboard", authhentication, async (req, res) => {
+    const { combineuser } = req.query;
+    try {
+        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(1000000000000000);
+        res.json({ topUsers, RequestedBy: combineuser });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
+
+
+
+
 
 
 
 
 //monthly Api Start 
-
-
 
 // Monthly Start  create 
 app.post("/monthly-contest", authhentication, async (req, res) => {
@@ -1119,18 +1134,6 @@ app.post("/monthly_join_contest", authhentication, async (req, res) => {
     }
 });
 
-
-// leaderboard
-app.get("/leaderboard", authhentication, async (req, res) => {
-    const { combineuser } = req.query;
-    try {
-        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(1000000000000000);
-        res.json({ topUsers, RequestedBy: combineuser });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
 
 // Monthly leaderboard
 app.get("/monthly-leaderboard", authhentication, async (req, res) => {
@@ -1415,13 +1418,13 @@ app.get("/contestdata", authhentication, async (req, res) => {
 
 // practice  Contest
 
-app.post("/practice_Contest",  authhentication, async (req, res) => {
+app.post("/practice_Contest",  async (req, res) => {
     try {
         const { combineId, fullName } = req.body;
         const newContest = new practiceContest({
             combineId: combineId, 
             fullName: fullName,
-            createdAt: new Date()
+            createdAt: new Date(),
         });
         await newContest.save();
         return res.status(201).json({
@@ -1434,7 +1437,7 @@ app.post("/practice_Contest",  authhentication, async (req, res) => {
 });
 
 
-app.post("/practice_question", authhentication,  async (req, res) => {
+app.post("/practice_question",   async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1457,7 +1460,7 @@ app.post("/practice_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/practice_answer", authhentication, async (req, res) => {2
+app.post("/practice_answer", async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await gkQuestion.findById(gkquestionId);
@@ -1473,23 +1476,13 @@ app.post("/practice_answer", authhentication, async (req, res) => {2
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
-            await leaderboardEntry.save();
             let contest = await practiceContest.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
             if (contest.combineId.toString() === combineId.toString()) {
-         
-                contestScore += 1;
+                contest.Score = parseInt(contest.Score) + 1;
+                contestScore = contest.Score;
                 await contest.save();
             } else {
                 return res.status(404).json({ message: "User not part of this contest" });
@@ -1501,8 +1494,12 @@ app.post("/practice_answer", authhentication, async (req, res) => {2
             gkquestionId,
             selectedOption,
             isCorrect,
-            combineuser,
-            score: contestScore,
+            combineuser,    
+            score: {
+                contestScore: contestScore
+            },
+
+            message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'} and the score has been updated.`,
         });
 
     } catch (err) {
@@ -1510,6 +1507,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {2
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 
 
