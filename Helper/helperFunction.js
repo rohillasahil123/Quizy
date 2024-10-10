@@ -64,17 +64,17 @@ async function checkAndCreateMoreContests() {
 
 
 
-//  MOnthly contest
+//  Monthly contest
   async function createMonthlyMultipleContests(contestCount) {
-    const contest = [];
+    const contestmonth = [];
     for (let i = 0; i < contestCount; i++) {
-        const newContest = new monthContest({
+        const newContestmonth = new monthContest({
             combineId: [], 
-            maxParticipants: 2 
+            maxParticipants: 100000
         });
-        contest.push(await newContest.save());
+        contestmonth.push(await newContestmonth.save());
     }
-    return contest;
+    return contestmonth;
 }
 
 

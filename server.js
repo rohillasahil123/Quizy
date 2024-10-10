@@ -83,21 +83,15 @@ app.post("/send-otp", async (req, res) => {
 app.post("/verify-otp", async (req, res) => {
     const { phoneNumber, otp } = req.body;
     try {
-        // Check OTP and its expiration
         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
-            // OTP is valid, proceed with generating token
             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
-
-            // Find user in CombineDetails by either formDetails or studentDetails
             const userData = await CombineDetails.findOne({
                 $or: [
                     { "formDetails.phoneNumber": phoneNumber },
                     { "studentDetails.phoneNumber": phoneNumber },
                 ],
             });
-
-            // Prepare the user object (null if no user data)
             const user = userData ? {
                 _id: userData._id || null,
                 fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
@@ -118,7 +112,6 @@ app.post("/verify-otp", async (req, res) => {
                 mediumName: userData.studentDetails?.mediumName || null,
                 aadharcard: userData.studentDetails?.aadharcard || null,
             } : {
-                // If userData is null, return all fields as null
                 _id: null,
                 fullname: null,
                 address: null,
@@ -127,7 +120,7 @@ app.post("/verify-otp", async (req, res) => {
                 role: null,
                 state: null,
                 pincode: null,
-                phoneNumber: phoneNumber, // This remains as phoneNumber
+                phoneNumber: phoneNumber, 
                 dob: null,
                 // Additional fields
                 schoolName: null,
@@ -138,8 +131,6 @@ app.post("/verify-otp", async (req, res) => {
                 mediumName: null,
                 aadharcard: null,
             };
-
-            // Send JSON response with user details and token
             res.json({
                 success: true,
                 message: "OTP verified successfully",
@@ -147,7 +138,6 @@ app.post("/verify-otp", async (req, res) => {
                 token: token,
             });
         } else {
-            // Invalid OTP or OTP expired
             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
         }
     } catch (err) {
@@ -160,7 +150,6 @@ app.post("/verify-otp", async (req, res) => {
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
-        // Find the user either by formDetails or studentDetails
         const userData = await CombineDetails.findOne({
             $or: [
                 { "formDetails.phoneNumber": phoneNumber },
@@ -170,8 +159,6 @@ app.get("/getdetails", async (req, res) => {
         if (!userData) {
             return res.status(404).json({ message: "User not found" });
         }
-
-        // Combine formDetails and studentDetails
         const user = {
             _id: userData._id || null,
             fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
@@ -202,6 +189,27 @@ app.get("/getdetails", async (req, res) => {
 });
 
 // Login needed Api End
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -288,7 +296,27 @@ app.put("/forget/password", authhentication, async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Form Student or other start 
+
 
 //Other form Api
 app.post("/other/add", authhentication, async (req, res) => {
@@ -359,7 +387,26 @@ app.post("/student/add", authhentication, async (req, res) => {
 
 
 
-// Create Contest Start 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Create Contest Start
+
 //now start
 
 app.post("/create-contest", authhentication, async (req, res) => {
@@ -705,6 +752,25 @@ app.post("/other/answer", authhentication, async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Game Compare Two or Four Start
 
 // Compare-Game-2 user
@@ -858,6 +924,20 @@ app.post("/many/game/compare", authhentication, async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // leaderboard start 
 
 
@@ -985,18 +1065,20 @@ app.post("/many/game/result", authhentication, async (req, res) => {
 });
 
 
-// leaderboard end
 
+
+
+//monthly Api Start 
 
 
 
 // Monthly Start  create 
-app.post("/monthly-contest", async (req, res) => {
-    const initialContestCount = 20;
+app.post("/monthly-contest", authhentication, async (req, res) => {
+    const initialContestCount = 1 ;
     try {
         const contests = await createMonthlyMultipleContests(initialContestCount);
         res.json({
-            message: "20 contests created successfully",
+            message: "monthly contests created successfully",
             contests,
         });
     } catch (err) {
@@ -1005,38 +1087,37 @@ app.post("/monthly-contest", async (req, res) => {
     }
 });
 
-
-
-
-
-
-
-
-
-app.post("/monthly/contest", authhentication, async (req, res) => {
-    const { contestId, newcombineId } = req.body;
+app.post("/monthly_join_contest", authhentication, async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
     try {
-        const contest = await monthContest.findById(contestId);
-     
-        if (!contest) {
+        if (!fullname) {
+            return res.status(400).json({ message: "Fullname is required" });
+        }
+
+        const contestmonth = await monthContest.findById(contestId);
+        if (!contestmonth) {
             return res.status(404).json({ message: "Contest not found" });
         }
-        if (contest.combineId.length >= 10000) {
-            return res.status(400).json({ message: "Contest fully" });
+        if (contestmonth.combineId.length >= 100000) {
+            return res.status(400).json({ message: "Contest full" });
         }
-         const sanju = contest.combineId.push(newcombineId);
-          console.log("id", contestId , newcombineId);
-          console.log("sanju" , sanju);
+        
+        const user = await getUserById(newcombineId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        contestmonth.combineId.push({ id: newcombineId, fullname });
+        await contestmonth.save();
 
-        //    await contest.save();
-      
-        // res.json({ message: `User ${newcombineId} joined contest`, contestId });
+        res.json({
+            message: `User ${fullname} joined contest and game`,
+            contestId,
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
     }
 });
-
 
 
 // leaderboard
@@ -1062,6 +1143,19 @@ app.get("/monthly-leaderboard", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Add wallet amount
 app.post("/wallet/add", authhentication, async (req, res) => {
@@ -1363,33 +1457,22 @@ app.post("/practice_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/practice_answer", async (req, res) => {
-    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-    
+app.post("/practice_answer", authhentication, async (req, res) => {2
     try {
-        // Step 1: Find the question
+        const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
-
-        // Step 2: Check if the selected option is correct
         const isCorrect = question.correctAnswer === selectedOption;
-
-        // Step 3: Find the user (combineId)
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
-
         let contestScore = 0;
-
         if (isCorrect) {
-            // Step 4: Update the user's total score
             combinedata.score += 1;
             await combinedata.save();
-
-            // Step 5: Update leaderboard
             let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
             if (!leaderboardEntry) {
                 leaderboardEntry = new leaderboarddetail({
@@ -1400,24 +1483,18 @@ app.post("/practice_answer", async (req, res) => {
             }
             leaderboardEntry.score += 1;
             await leaderboardEntry.save();
-
-            // Step 6: Find the contest and update the score
             let contest = await practiceContest.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
-
-            // Check if the combineId matches the user
             if (contest.combineId.toString() === combineId.toString()) {
-                // Since combineId is no longer an array, just update the contest record
+         
                 contestScore += 1;
                 await contest.save();
             } else {
                 return res.status(404).json({ message: "User not part of this contest" });
             }
         }
-
-        // Step 7: Send response
         res.json({
             combineId,
             contestId,
