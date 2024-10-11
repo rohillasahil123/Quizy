@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 require("./configfile/config.js");
-const { getUserById, getWalletBycombineId, updateWallet, logTransaction, checkAndCreateMoreContests, createMultipleContests, createMonthlyMultipleContests } = require("./Helper/helperFunction.js");
+const { getUserById, getWalletBycombineId, updateWallet, logTransaction, checkAndCreateMoreContests, createMultipleContests, createMonthlyMultipleContests , createStudentMultipleContests } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
 PORT = process.env.PORT || 5000;
@@ -21,6 +21,7 @@ const validateStudentData = require("./Middelware/MiddelWare.js")
 // const contestData = require("./Model/School.js")
 const monthContest = require("./Model/MonthlyContest.js")
 const practiceContest = require("./Model/Practice_Contest.js")
+const studentContestQuestion = require ("./Model/student_Question.js")
 
 
 const app = express();
@@ -761,6 +762,54 @@ app.post("/other/answer", authhentication, async (req, res) => {
 
 
 // other Student 11th & 12th Question 
+// Done
+app.post("/student_create_contest", authhentication, async (req, res) => {
+    const initialContestCount = 20;
+    try {
+        const contests = await createStudentMultipleContests(initialContestCount);
+        res.json({
+            message: "20 contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/student_join-contest",  async (req, res) => {
+    const { contestId, combineId, fullname } = req.body;
+    const gameAmount = 25;
+    try {
+        const wallet = await getWalletBycombineId(combineId);
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        if (wallet.balance < gameAmount) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+        const contest = await studentContestQuestion.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        if (contest.combineId.length >= contest.maxParticipants) {
+            return res.status(400).json({ message: "Contest is already full" });
+        }
+        contest.combineId.push({ id: combineId, fullname: fullname });
+        await contest.save();
+        wallet.balance -= gameAmount;
+        await wallet.save();
+        await logTransaction(combineId, -gameAmount, "debit");
+        await checkAndCreateMoreContests();
+        res.json({
+            message: "Successfully joined the contest",
+            balance: wallet.balance,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 app.post("/student_question",  authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -790,7 +839,7 @@ app.post("/student_question",  authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/Student_answer",  authhentication,  async (req, res) => {
+app.post("/student_answer",  authhentication,  async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -815,7 +864,7 @@ app.post("/Student_answer",  authhentication,  async (req, res) => {
             }
             leaderboardEntry.score += 1;
             await leaderboardEntry.save();
-            let contest = await contestdetails.findById(contestId);
+            let contest = await studentContestQuestion.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
@@ -852,8 +901,7 @@ app.post("/Student_answer",  authhentication,  async (req, res) => {
 
 
 
-// Game Compare Two or Four Start
-// Compare-Game-2 user
+// Game Compare Two or Four Start 2
 app.post("/game/compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, winningAmount } = req.body;
     try {

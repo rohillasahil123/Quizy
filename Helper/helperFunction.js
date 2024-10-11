@@ -3,6 +3,8 @@ const Wallet = require('../Model/Wallet');
 const Transaction = require('../Model/Transation');
 const contestdetails = require("../Model/contest");
 const monthContest = require ("../Model/MonthlyContest.js")
+const studentContestQuestion = require ("../Model/student_Question.js")
+
 
 
 
@@ -64,18 +66,36 @@ async function checkAndCreateMoreContests() {
 
 
 
-//  Monthly contest
-  async function createMonthlyMultipleContests(contestCount) {
-    const contestmonth = [];
+//  Student contest
+  async function createStudentMultipleContests(contestCount) {
+    const ContesStudent = [];
     for (let i = 0; i < contestCount; i++) {
-        const newContestmonth = new monthContest({
+        const newContesStudent = new studentContestQuestion({
             combineId: [], 
-            maxParticipants: 100000
-        });
-        contestmonth.push(await newContestmonth.save());
+            maxParticipants: 2
+        });       
+        ContesStudent.push(await newContesStudent.save());
     }
-    return contestmonth;
+    return ContesStudent;
 }
+
+
+
+
+// monthly database
+async function createMonthlyMultipleContests(contestCount) {
+  const contestmonth = [];
+  for (let i = 0; i < contestCount; i++) {
+      const newContestmonth = new monthContest({
+          combineId: [], 
+          maxParticipants: 100000
+      });
+      contestmonth.push(await newContestmonth.save());
+  }
+  return contestmonth;
+}
+
+
 
 
 
@@ -89,6 +109,7 @@ async function checkAndCreateMoreContests() {
     logTransaction,
     createMultipleContests,
     checkAndCreateMoreContests,
-    createMonthlyMultipleContests
+    createMonthlyMultipleContests,
+    createStudentMultipleContests
 };
   
