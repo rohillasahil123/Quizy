@@ -393,20 +393,6 @@ app.post("/student/add", authhentication, async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Create Contest Start
 
 //now start
@@ -890,13 +876,52 @@ app.post("/student_answer",  authhentication,  async (req, res) => {
 });
 
 
+app.get("/student_contest_answer", async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await studentContestQuestion.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await studentContestQuestion.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+
 
 
 
 
 //  competitive Part 
 // Done
-app.post("/competitive_create_contest", async (req, res) => {
+app.post("/competitive_create_contest", authhentication, async (req, res) => {
     const initialContestCount = 20;
     try {
         const contests = await createMultipleCompetitiveContests(initialContestCount);
@@ -910,7 +935,7 @@ app.post("/competitive_create_contest", async (req, res) => {
     }
 });
 
-app.post("/competitive_join-contest",   async (req, res) => {
+app.post("/competitive_join-contest", authhentication,  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 25;
     try {
@@ -944,7 +969,7 @@ app.post("/competitive_join-contest",   async (req, res) => {
     }
 });
 
-app.post("/competitive_question", async (req, res) => {
+app.post("/competitive_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -968,7 +993,7 @@ app.post("/competitive_question", async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/competitive_answer",  async (req, res) => {
+app.post("/competitive_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1027,6 +1052,45 @@ app.post("/competitive_answer",  async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+app.get("/competitive_contest_answer", async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await competitiveContest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await competitiveContest.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
 
 
 
@@ -1634,6 +1698,7 @@ app.get("/contestdata", authhentication, async (req, res) => {
                 return res.status(404).send({ message: "Contest not found" });
             }
             contests = [contests];
+          
         } else {
             contests = await contestdetails.find();
         }
