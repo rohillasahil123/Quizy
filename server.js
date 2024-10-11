@@ -777,7 +777,7 @@ app.post("/student_create_contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/student_join-contest",  async (req, res) => {
+app.post("/student_join-contest", authhentication,  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 25;
     try {
