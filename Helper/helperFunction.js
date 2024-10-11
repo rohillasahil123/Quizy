@@ -4,6 +4,7 @@ const Transaction = require('../Model/Transation');
 const contestdetails = require("../Model/contest");
 const monthContest = require ("../Model/MonthlyContest.js")
 const studentContestQuestion = require ("../Model/student_Question.js")
+const competitiveContest = require ("../Model/competitive.js")
 
 
 
@@ -43,6 +44,8 @@ async function getUserById(combineId) {
     }
     return contests;
 }
+
+
 
 
 
@@ -95,7 +98,17 @@ async function createMonthlyMultipleContests(contestCount) {
   return contestmonth;
 }
 
-
+async function createMultipleCompetitiveContests(contestCount) {
+  const contestCompetitive = [];
+  for (let i = 0; i < contestCount; i++) {
+      const newContestCompetitive = new competitiveContest({
+          combineId: [], 
+          maxParticipants: 2 
+      });
+      contestCompetitive.push(await newContestCompetitive.save());
+  }
+  return contestCompetitive;
+}
 
 
 
@@ -110,6 +123,7 @@ async function createMonthlyMultipleContests(contestCount) {
     createMultipleContests,
     checkAndCreateMoreContests,
     createMonthlyMultipleContests,
-    createStudentMultipleContests
+    createStudentMultipleContests,
+    createMultipleCompetitiveContests
 };
   
