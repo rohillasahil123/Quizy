@@ -762,7 +762,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
 
 // other Student 11th & 12th Question 
 
-app.post("/student_question", async (req, res) => {
+app.post("/student_question",  authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const studentvalues = await CombineDetails.findById(combineId);
@@ -790,7 +790,7 @@ app.post("/student_question", async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/Student_answer",  async (req, res) => {
+app.post("/Student_answer",  authhentication,  async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
