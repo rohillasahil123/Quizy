@@ -742,6 +742,76 @@ app.post("/other/answer", authhentication, async (req, res) => {
 });
 
 
+app.get("/contests", async (req, res) => {
+    try {
+        const contests = await contestdetails.find();
+        const contestsWithStatus = contests
+            .map(contest => {
+                const isFull = contest.combineId.length >= 2;
+
+                return {
+                    contestId: contest._id,
+                    gameAmount: 25,
+                    winningAmount: 50,
+                    isFull,
+                    players: contest.combineId.map(player => ({
+                        combineId: player.id,
+                        score: player.score,
+                        fullname: player.fullname
+                    })),
+                };
+            })
+            .filter(contest => !contest.isFull);
+
+        res.send({
+            contests: contestsWithStatus,
+            message: "All contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+
+app.get("/contestdata",  async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await contestdetails.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+          
+        } else {
+            contests = await contestdetails.find();
+        }
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
 
 
 
@@ -764,7 +834,7 @@ app.post("/student_create_contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/student_join-contest", authhentication,  async (req, res) => {
+app.post("/student_join-contest",  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 25;
     try {
@@ -876,7 +946,7 @@ app.post("/student_answer",  authhentication,  async (req, res) => {
 });
 
 
-app.get("/student_contest_answer", async (req, res) => {
+app.get("/student_contest_answer", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -914,6 +984,43 @@ app.get("/student_contest_answer", async (req, res) => {
     }
 });
 
+app.get("/student_one_contest", async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await studentContestQuestion.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await studentContestQuestion.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
 
 
 
@@ -1053,7 +1160,7 @@ app.post("/competitive_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/competitive_contest_answer", async (req, res) => {
+app.get("/competitive_contest_answer", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -1091,7 +1198,43 @@ app.get("/competitive_contest_answer", async (req, res) => {
     }
 });
 
-
+app.get("/competitive_one_contest", authhentication, async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await competitiveContest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await competitiveContest.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
 
 
 
@@ -1657,74 +1800,8 @@ app.post("/school/join", authhentication, async (req, res) => {
     }
 });
 
-app.get("/contests", authhentication, async (req, res) => {
-    try {
-        const contests = await contestdetails.find();
-        const contestsWithStatus = contests
-            .map(contest => {
-                const isFull = contest.combineId.length >= 2;
 
-                return {
-                    contestId: contest._id,
-                    gameAmount: 25,
-                    winningAmount: 50,
-                    isFull,
-                    players: contest.combineId.map(player => ({
-                        combineId: player.id,
-                        score: player.score,
-                        fullname: player.fullname
-                    })),
-                };
-            })
-            .filter(contest => !contest.isFull);
 
-        res.send({
-            contests: contestsWithStatus,
-            message: "All contests retrieved successfully"
-        });
-    } catch (error) {
-        console.error("Error:", error);
-        res.status(500).send("Internal server error");
-    }
-});
-
-app.get("/contestdata", authhentication, async (req, res) => {
-    const { id } = req.query;
-    try {
-        let contests;
-        if (id) {
-            contests = await contestdetails.findById(id);
-            if (!contests) {
-                return res.status(404).send({ message: "Contest not found" });
-            }
-            contests = [contests];
-          
-        } else {
-            contests = await contestdetails.find();
-        }
-        const contestsWithStatus = contests.map(contest => {
-            const isFull = contest.combineId.length >= 2;
-            return {
-                contestId: contest._id,
-                gameAmount: 25,
-                winningAmount: 50,
-                isFull,
-                players: contest.combineId.map(player => ({
-                    combineId: player.id,
-                    score: player.score,
-                    fullname: player.fullname
-                })),
-            };
-        });
-        res.send({
-            contests: contestsWithStatus,
-            message: "Contests retrieved successfully"
-        });
-    } catch (error) {
-        console.error("Error:", error);
-        res.status(500).send("Internal server error");
-    }
-});
 
 
 
