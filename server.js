@@ -531,21 +531,6 @@ app.post("/join-game/many", authhentication, async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Question  And Answer Api 
 
 // Student based Question
@@ -896,18 +881,20 @@ app.post("/student_question",  authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/student_answer",  authhentication,  async (req, res) => {
+app.post("/student_answer", authhentication, async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
+
         const isCorrect = question.correctAnswer === selectedOption;
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+        let contestScore = 0;
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
@@ -920,17 +907,22 @@ app.post("/student_answer",  authhentication,  async (req, res) => {
                 });
             }
             leaderboardEntry.score += 1;
+
             await leaderboardEntry.save();
+
             let contest = await studentContestQuestion.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
+
             let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
             if (userContest) {
                 userContest.score += 1;
+                contestScore = userContest.score;
                 await contest.save();
             }
         }
+
         res.json({
             combineId,
             contestId,
@@ -938,6 +930,7 @@ app.post("/student_answer",  authhentication,  async (req, res) => {
             selectedOption,
             isCorrect,
             combineuser,
+            score: contestScore,
         });
     } catch (err) {
         console.error(err);
@@ -1235,6 +1228,234 @@ app.get("/competitive_one_contest", authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+
+
+
+
+
+//  Collage Api Part 
+
+app.post("/competitive_create_contest", authhentication, async (req, res) => {
+    const initialContestCount = 20;
+    try {
+        const contests = await createMultipleCompetitiveContests(initialContestCount);
+        res.json({
+            message: "20 contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/competitive_join-contest", authhentication,  async (req, res) => {
+    const { contestId, combineId, fullname } = req.body;
+    const gameAmount = 25;
+    try {
+        const wallet = await getWalletBycombineId(combineId);
+        if (!wallet) {
+            return res.status(404).json({ message: "Wallet not found" });
+        }
+        if (wallet.balance < gameAmount) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+        const contest = await competitiveContest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        if (contest.combineId.length >= contest.maxParticipants) {
+            return res.status(400).json({ message: "Contest is already full" });
+        }
+        contest.combineId.push({ id: combineId, fullname: fullname });
+        await contest.save();
+        wallet.balance -= gameAmount;
+        await wallet.save();
+        await logTransaction(combineId, -gameAmount, "debit");
+        await checkAndCreateMoreContests();
+        res.json({
+            message: "Successfully joined the contest",
+            balance: wallet.balance,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/competitive_question", authhentication, async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "Data is not available" });
+        }
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+// Verify Answer Api
+app.post("/competitive_answer", authhentication, async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+    try {
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+
+        const isCorrect = question.correctAnswer === selectedOption;
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let contestScore = 0;
+
+        if (isCorrect) {
+            combinedata.score += 1;
+            await combinedata.save();
+
+            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            if (!leaderboardEntry) {
+                leaderboardEntry = new leaderboarddetail({
+                    combineId,
+                    combineuser,
+                    score: 0,
+                });
+            }
+            leaderboardEntry.score += 1;
+
+            await leaderboardEntry.save();
+
+            let contest = await competitiveContest.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+
+            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            if (userContest) {
+                userContest.score += 1;
+                contestScore = userContest.score;
+                await contest.save();
+            }
+        }
+
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/competitive_contest_answer", authhentication, async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await competitiveContest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await competitiveContest.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+app.get("/competitive_one_contest", authhentication, async (req, res) => {
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await competitiveContest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await competitiveContest.find();
+        }
+        console.log(contests , "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 2;
+            return {
+                contestId: contest._id,
+                gameAmount: 25,
+                winningAmount: 50,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
