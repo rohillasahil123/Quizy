@@ -355,12 +355,12 @@ app.post("/student/add", authhentication, async (req, res) => {
 
 
 // Create Contest Start
-app.post("/create-contest", authhentication, async (req, res) => {
-    const initialContestCount = 11;
+app.post("/create-contest",  async (req, res) => {
+    const initialContestCount = 1;
     try {
         const contests = await createMultipleContests(initialContestCount);
         res.json({
-            message: "20 contests created successfully",
+            message: "1 contests created successfully",
             contests,
         });
     } catch (err) {
@@ -1141,9 +1141,9 @@ app.get("/competitive_one_contest", authhentication, async (req, res) => {
 
 
 // join game and cut amount
-app.post("/join_game_five", authhentication, async (req, res) => {
+app.post("/join_game_five",  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 10;
+    const gameAmount = 5;
     const winningAmount = gameAmount * 2;
     try {
         const contest = await contestdetails.findById(contestId);
@@ -1183,7 +1183,7 @@ app.post("/join_game_five", authhentication, async (req, res) => {
 
 
 
-app.post("/join_game_ten", authhentication, async (req, res) => {
+app.post("/join_game_ten",  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 10;
     const winningAmount = gameAmount * 2;
@@ -1225,7 +1225,7 @@ app.post("/join_game_ten", authhentication, async (req, res) => {
 
 // new fix wallet id
 
-app.post("/system_compare", authhentication, async (req, res) => {
+app.post("/system_compare", async (req, res) => {
     const { contestId, combineId1, combineId2 , winningAmount } = req.body;
     const fixedWalletId = "66fcf223377b6df30f65389d"; 
     try {
