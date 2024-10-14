@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 require ("../configfile/config.js")
 const GkQuestion = require('../Model/OtherQuestion'); 
-const path = "C:/HP/Coding/Quizy/Data/QuizzyCSV.csv";
+const path = "C:/Users/Unique Computer/Desktop/coding/Quizy/Data/QuizzyCSV.csv";
 
 
 
