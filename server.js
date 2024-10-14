@@ -1141,9 +1141,10 @@ app.get("/competitive_one_contest", authhentication, async (req, res) => {
 
 
 // join game and cut amount
-app.post("/join_game", authhentication, async (req, res) => {
+app.post("/join_game_five", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 5;
+    const gameAmount = 10;
+    const winningAmount = gameAmount * 2;
     try {
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
@@ -1172,6 +1173,7 @@ app.post("/join_game", authhentication, async (req, res) => {
             message: `User ${fullname} joined contest and game`,
             contestId,
             balance: wallet.balance,
+            winningAmount
         });
     } catch (err) {
         console.error(err);
@@ -1181,7 +1183,7 @@ app.post("/join_game", authhentication, async (req, res) => {
 
 
 
-app.post("/join_game_ten", async (req, res) => {
+app.post("/join_game_ten", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 10;
     const winningAmount = gameAmount * 2;
@@ -1223,7 +1225,7 @@ app.post("/join_game_ten", async (req, res) => {
 
 // new fix wallet id
 
-app.post("/system_compare", async (req, res) => {
+app.post("/system_compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2 , winningAmount } = req.body;
     const fixedWalletId = "66fcf223377b6df30f65389d"; 
     try {
