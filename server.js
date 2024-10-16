@@ -7,7 +7,8 @@ const { getUserById,
     updateWallet,
     logTransaction,
     checkAndCreateMoreContests,
-    createMultipleContests,
+    createNewContest,
+    // createMultipleContests,
     createMonthlyMultipleContests,
     createStudentMultipleContests,
     createMultipleCompetitiveContests,
@@ -354,14 +355,14 @@ app.post("/student/add", authhentication, async (req, res) => {
 // Form Student or other End
 
 
+//create contest 
 
-// Create Contest Start
-app.post("/create-contest", authhentication, async (req, res) => {
-    const initialContestCount = 1;
+
+app.post("/create-contest_new",authhentication,  async (req, res) => {
     try {
-        const contests = await createMultipleContests(initialContestCount);
+        const contests = await createMultipleContestss();
         res.json({
-            message: "1 contests created successfully",
+            message: "Contests created successfully",
             contests,
         });
     } catch (err) {
@@ -370,20 +371,24 @@ app.post("/create-contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/join-contest", authhentication, async (req, res) => {
+
+
+app.post("/join-contest", authhentication,   async (req, res) => {
+
     const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 5;
+    
     try {
+        const contest = await contestdetails.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const gameAmount = contest.amount;
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
         }
         if (wallet.balance < gameAmount) {
             return res.status(400).json({ message: "Insufficient balance" });
-        }
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
         }
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
@@ -393,7 +398,11 @@ app.post("/join-contest", authhentication, async (req, res) => {
         wallet.balance -= gameAmount;
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
-        await checkAndCreateMoreContests();
+        if (contest.combineId.length >= contest.maxParticipants) {
+            contest.isFull = true;  
+            await contest.save();
+            await createNewContest(gameAmount); 
+        }
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
@@ -535,14 +544,10 @@ app.post("/other/question",  async (req, res) => {
         if (!othervalues) {
             return res.status(400).send({ message: "Data is not available" });
         }
-
-        // Start the timer if not already started
         if (!req.session.startTime) {
             req.session.startTime = Date.now();
-            req.session.questionCount = 0;  // Initialize question count
+            req.session.questionCount = 0; 
         }
-
-        // Fetch a random question
         const count = await gkQuestion.countDocuments();
         if (count === 0) {
             return res.status(404).send({
@@ -550,7 +555,6 @@ app.post("/other/question",  async (req, res) => {
                 totalQuestions: count,
             });
         }
-
         const randomIndex = Math.floor(Math.random() * count);
         const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
 
@@ -721,6 +725,7 @@ app.post("/other/answer",async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 
 

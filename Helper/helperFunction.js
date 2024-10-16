@@ -31,21 +31,45 @@ async function correctClass(classvalue) {
 }
 
 async function createMultipleContestss() {
-  const contestAmounts = [5, 10, 25, 50, 100, 500];  // Adjusted to the amounts you want
+  const contestAmounts = [5, 10, 25, 50, 100, 500];  
   const contests = [];
-
   for (let amount of contestAmounts) {
-      const newContest = new contestdetails({
-          combineId: [],            
-          maxParticipants: 2,       
-          amount: amount,
-          winningAmount: amount * 2   // Winning amount is double the game amount
-      });
-      contests.push(await newContest.save());
+      const existingContest = await contestdetails.findOne({ amount:amount, isFull: false });
+      if (existingContest) {
+          if (existingContest.combineId.length >= existingContest.maxParticipants) {
+            console.log("one")
+              existingContest.isFull = true;
+              await existingContest.save();
+              const newContest = await createNewContest(amount);
+              contests.push(newContest);
+              console.log("two")
+          } else {
+              contests.push(existingContest);
+              console.log("3")
+          }
+      } else {
+          const newContest = await createNewContest(amount);
+          contests.push(newContest);
+          console.log("4")
+      }
   }
 
   return contests;
 }
+
+
+async function createNewContest(amount) {
+  const newContest = new contestdetails({
+      combineId: [],  
+      maxParticipants: 2,
+      amount: amount,  
+      winningAmount: amount * 2, 
+      isFull: false  
+  });
+  return await newContest.save(); 
+}
+
+
 
 
 async function createMultipleContests(contestCount) {
@@ -138,5 +162,6 @@ module.exports = {
   createStudentMultipleContests,
   createMultipleCompetitiveContests,                  
   createMultipleCollageContests,
-  createMultipleContestss
+  createMultipleContestss,
+  createNewContest
 };
