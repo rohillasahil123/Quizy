@@ -2,54 +2,59 @@ const CombineDetails = require("../Model/OtherData")
 const Wallet = require('../Model/Wallet');
 const Transaction = require('../Model/Transation');
 const contestdetails = require("../Model/contest");
-const monthContest = require ("../Model/MonthlyContest.js")
-const studentContestQuestion = require ("../Model/student_Question.js")
-const competitiveContest = require ("../Model/competitive.js")
-const collageContest = require ("../Model/collage.js")
-
-
-
-
+const monthContest = require("../Model/MonthlyContest.js")
+const studentContestQuestion = require("../Model/student_Question.js")
+const competitiveContest = require("../Model/competitive.js")
+const collageContest = require("../Model/collage.js")
 
 async function getUserById(combineId) {
-    return await CombineDetails.findById(combineId);
-  }
-  
-  async function getWalletBycombineId(combineId) {
-    return await Wallet.findOne({ combineId: combineId });
-  }
-  
-  async function updateWallet(wallet) {
-    return await wallet.save();
-  }
-  
-  async function logTransaction(combineId, amount, type) {
-    const transaction = new Transaction({ combineId, amount, type });
-    return await transaction.save();
-  }
-
-  async function correctClass(classvalue){
-    if(classvalue == "1st"){
-      return "1st"
-    }
-  }
-
-  async function createMultipleContests(contestCount) {
-    const contests = [];
-    for (let i = 0; i < contestCount; i++) {
-        const newContest = new contestdetails({
-            combineId: [], 
-            maxParticipants: 2 
-        });
-        contests.push(await newContest.save());
-    }
-    return contests;
+  return await CombineDetails.findById(combineId);
 }
 
+async function getWalletBycombineId(combineId) {
+  return await Wallet.findOne({ combineId: combineId });
+}
 
+async function updateWallet(wallet) {
+  return await wallet.save();
+}
 
+async function logTransaction(combineId, amount, type) {
+  const transaction = new Transaction({ combineId, amount, type });
+  return await transaction.save();
+}
 
+async function correctClass(classvalue) {
+  if (classvalue == "1st") {
+    return "1st"
+  }
+}
 
+async function createMultipleContestss() {
+  const contestAmounts = [5, 10, 25, 50, 100, 200, 500]; 
+  const contests = [];
+  for (let amount of contestAmounts) {
+      const newContest = new contestdetails({
+          combineId: [],            
+          maxParticipants: 2,       
+          amount: amount       
+      });
+      contests.push(await newContest.save());
+  }
+  return contests;
+}
+
+async function createMultipleContests(contestCount) {
+  const contests = [];
+  for (let i = 0; i < contestCount; i++) {
+    const newContest = new contestdetails({
+      combineId: [],
+      maxParticipants: 2
+    });
+    contests.push(await newContest.save());
+  }
+  return contests;
+}
 
 async function checkAndCreateMoreContests() {
   try {
@@ -66,49 +71,41 @@ async function checkAndCreateMoreContests() {
   }
 }
 
-
-
-
-
 //  Student contest
-  async function createStudentMultipleContests(contestCount) {
-    const ContesStudent = [];
-    for (let i = 0; i < contestCount; i++) {
-        const newContesStudent = new studentContestQuestion({
-            combineId: [], 
-            maxParticipants: 2
-        });       
-        ContesStudent.push(await newContesStudent.save());
-    }
-    return ContesStudent;
+async function createStudentMultipleContests(contestCount) {
+  const ContesStudent = [];
+  for (let i = 0; i < contestCount; i++) {
+    const newContesStudent = new studentContestQuestion({
+      combineId: [],
+      maxParticipants: 2
+    });
+    ContesStudent.push(await newContesStudent.save());
+  }
+  return ContesStudent;
 }
-
-
-
 
 // monthly database
 async function createMonthlyMultipleContests(contestCount) {
   const contestmonth = [];
   for (let i = 0; i < contestCount; i++) {
-      const newContestmonth = new monthContest({
-          combineId: [], 
-          maxParticipants: 100000
-      });
-      contestmonth.push(await newContestmonth.save());
+    const newContestmonth = new monthContest({
+      combineId: [],
+      maxParticipants: 100000
+    });
+    contestmonth.push(await newContestmonth.save());
   }
   return contestmonth;
 }
- 
-// comatitive Exam
 
+// compatitive Exam
 async function createMultipleCompetitiveContests(contestCount) {
   const contestCompetitive = [];
   for (let i = 0; i < contestCount; i++) {
-      const newContestCompetitive = new competitiveContest({
-          combineId: [], 
-          maxParticipants: 2 
-      });
-      contestCompetitive.push(await newContestCompetitive.save());
+    const newContestCompetitive = new competitiveContest({
+      combineId: [],
+      maxParticipants: 2
+    });
+    contestCompetitive.push(await newContestCompetitive.save());
   }
   return contestCompetitive;
 }
@@ -117,27 +114,25 @@ async function createMultipleCompetitiveContests(contestCount) {
 async function createMultipleCollageContests(contestCount) {
   const contestCollage = [];
   for (let i = 0; i < contestCount; i++) {
-      const newContestCollage = new collageContest({
-          combineId: [], 
-          maxParticipants: 2 
-      });
-      contestCollage.push(await newContestCollage.save());
+    const newContestCollage = new collageContest({
+      combineId: [],
+      maxParticipants: 2
+    });
+    contestCollage.push(await newContestCollage.save());
   }
   return contestCollage;
 }
 
-
-
-  module.exports = {
-    getUserById,
-    getWalletBycombineId,
-    updateWallet,
-    logTransaction,
-    createMultipleContests,
-    checkAndCreateMoreContests,
-    createMonthlyMultipleContests,
-    createStudentMultipleContests,
-    createMultipleCompetitiveContests,
-    createMultipleCollageContests
+module.exports = {
+  getUserById,
+  getWalletBycombineId,
+  updateWallet,
+  logTransaction,
+  createMultipleContests,
+  checkAndCreateMoreContests,
+  createMonthlyMultipleContests,
+  createStudentMultipleContests,
+  createMultipleCompetitiveContests,                  
+  createMultipleCollageContests,
+  createMultipleContestss
 };
-  
