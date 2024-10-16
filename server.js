@@ -686,8 +686,9 @@ app.post("/other/answer",async (req, res) => {
 
                  return {
                      contestId: contest._id,
-                     gameAmount: 25,
-                     winningAmount: 50,
+                     gameAmount: contest.amount,
+                     winningAmount:  contest.winningAmount,
+
                      isFull,
                      players: contest.combineId.map(player => ({                         combineId: player.id,
                          score: player.score,
@@ -708,17 +709,17 @@ app.post("/other/answer",async (req, res) => {
 
 
 
-app.post("/create-contest_new", async (req, res) => {
+ app.post("/create-contest_new", async (req, res) => {
     try {
         const contests = await createMultipleContestss();
         res.json({
-            message: "7 contests created successfully",
+            message: "Contests created successfully",
             contests,
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
+        res.status(500).json({ message: "Server Error" });
+    }
 });
 
 

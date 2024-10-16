@@ -31,18 +31,22 @@ async function correctClass(classvalue) {
 }
 
 async function createMultipleContestss() {
-  const contestAmounts = [5, 10, 25, 50, 100, 200, 500]; 
+  const contestAmounts = [5, 10, 25, 50, 100, 500];  // Adjusted to the amounts you want
   const contests = [];
+
   for (let amount of contestAmounts) {
       const newContest = new contestdetails({
           combineId: [],            
           maxParticipants: 2,       
-          amount: amount       
+          amount: amount,
+          winningAmount: amount * 2   // Winning amount is double the game amount
       });
       contests.push(await newContest.save());
   }
-  return contests;
+
+  return contests;
 }
+
 
 async function createMultipleContests(contestCount) {
   const contests = [];
