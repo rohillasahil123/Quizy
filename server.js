@@ -8,12 +8,12 @@ const { getUserById,
     logTransaction,
     checkAndCreateMoreContests,
     createNewContest,
-    // createMultipleContests,
     createMonthlyMultipleContests,
     createStudentMultipleContests,
     createMultipleCompetitiveContests,
     // createMultipleCollageContests,
-    createMultipleContestss
+    createMultipleContestss,
+    createNewContestSchool
 } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
@@ -599,7 +599,7 @@ app.get("/get/score", authhentication, async (req, res) => {
 });
 
 //Other Data Answer
-app.post("/other/answer", async (req, res) => {
+app.post("/other/answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -659,7 +659,7 @@ app.post("/other/answer", async (req, res) => {
     }
 });
 
-app.get("/contests", async (req, res) => {
+app.get("/contests", authhentication, async (req, res) => {
     try {
         const contests = await contestdetails.find();
         const contestsWithStatus = contests
@@ -731,7 +731,7 @@ app.get("/contestdata", authhentication, async (req, res) => {
 
 // other Student 11th & 12th Question 
 // Done
-app.post("/1-12_create-contest",     async (req, res) => {
+app.post("/1-12_create-contest",   authhentication,   async (req, res) => {
     try {
         const contests = await  createStudentMultipleContests();
         res.json({
@@ -744,7 +744,7 @@ app.post("/1-12_create-contest",     async (req, res) => {
     }
 });
 
-app.post("/1-12_join-contest",  async (req, res) => {
+app.post("/1-12_join-contest",  authhentication,  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     try {
         const contest = await studentContestQuestion.findById(contestId);
@@ -770,7 +770,7 @@ app.post("/1-12_join-contest",  async (req, res) => {
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
-            await createNewContest(gameAmount);
+            await createNewContestSchool(gameAmount);
         }
         res.json({
             message: "Successfully joined the contest",
@@ -867,7 +867,7 @@ app.post("/student_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/1-12_get-contest", async (req, res) => {
+app.get("/1-12_get-contest",  authhentication, async (req, res) => {
     try {
         const contests = await studentContestQuestion.find();
         const contestsWithStatus = contests
