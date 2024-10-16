@@ -71,7 +71,7 @@ async function sendQuestionToUser(combineId) {
 
     console.log(`Sent question to user: ${question}`);
   } catch (error) {
-    console.error("Error sending question to user:", error);
+    console.error("Error sending question to user:", error); 
   }
 }
 

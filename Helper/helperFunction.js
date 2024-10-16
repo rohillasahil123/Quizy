@@ -24,11 +24,7 @@ async function logTransaction(combineId, amount, type) {
   return await transaction.save();
 }
 
-async function correctClass(classvalue) {
-  if (classvalue == "1st") {
-    return "1st"
-  }
-}
+
 
 async function createMultipleContestss() {
   const contestAmounts = [5, 10, 25, 50, 100, 500];  
@@ -72,44 +68,44 @@ async function createNewContest(amount) {
 
 
 
-async function createMultipleContests(contestCount) {
+//  Student contest
+async function  createStudentMultipleContests() {
+  const contestAmounts = [5, 10, 25, 50, 100, 500];  
   const contests = [];
-  for (let i = 0; i < contestCount; i++) {
-    const newContest = new contestdetails({
-      combineId: [],
-      maxParticipants: 2
-    });
-    contests.push(await newContest.save());
+  for (let amount of contestAmounts) {
+      const existingContest = await studentContestQuestion.findOne({ amount:amount, isFull: false });
+      if (existingContest) {
+          if (existingContest.combineId.length >= existingContest.maxParticipants) {
+            console.log("one")
+              existingContest.isFull = true;
+              await existingContest.save();
+              const newContest = await createNewContest(amount);
+              contests.push(newContest);
+              console.log("two")
+          } else {
+              contests.push(existingContest);
+              console.log("3")
+          }
+      } else {
+          const newContest = await createNewContest(amount);
+          contests.push(newContest);
+          console.log("4")
+      }
   }
+
   return contests;
 }
 
-async function checkAndCreateMoreContests() {
-  try {
-    const currentContestCount = await contestdetails.countDocuments();
-    if (currentContestCount <= 10) {
-      console.log("There are 10 or fewer contests, creating new contests...");
-      await createMultipleContests(10);
-      console.log("Successfully created 10 more contests.");
-    } else {
-      console.log("There are more than 10 contests. No new contests created.");
-    }
-  } catch (error) {
-    console.error("Error while checking and creating contests:", error);
-  }
-}
 
-//  Student contest
-async function createStudentMultipleContests(contestCount) {
-  const ContesStudent = [];
-  for (let i = 0; i < contestCount; i++) {
-    const newContesStudent = new studentContestQuestion({
-      combineId: [],
-      maxParticipants: 2
-    });
-    ContesStudent.push(await newContesStudent.save());
-  }
-  return ContesStudent;
+async function createNewContest(amount) {
+  const newContest = new studentContestQuestion({
+      combineId: [],  
+      maxParticipants: 2,
+      amount: amount,  
+      winningAmount: amount * 2, 
+      isFull: false  
+  });
+  return await newContest.save(); 
 }
 
 // monthly database
@@ -156,8 +152,6 @@ module.exports = {
   getWalletBycombineId,
   updateWallet,
   logTransaction,
-  createMultipleContests,
-  checkAndCreateMoreContests,
   createMonthlyMultipleContests,
   createStudentMultipleContests,
   createMultipleCompetitiveContests,                  

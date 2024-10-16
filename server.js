@@ -47,7 +47,6 @@ app.use(bodyParser.json());
 
 
 // Login needed Api Start
-
 //Genrate-Otp Api
 app.post("/send-otp", async (req, res) => {
     const { phoneNumber } = req.body;
@@ -160,7 +159,6 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
-
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
@@ -203,8 +201,6 @@ app.get("/getdetails", async (req, res) => {
 });
 
 // Login needed Api End
-
-
 //save Password
 app.post("/password", authhentication, async (req, res) => {
     const { phoneNumberId, password } = req.body;
@@ -285,7 +281,6 @@ app.put("/forget/password", authhentication, async (req, res) => {
     }
 });
 
-
 // Form Student or other start 
 
 
@@ -321,7 +316,7 @@ app.post("/other/add", authhentication, async (req, res) => {
 });
 
 //  Student Form
-app.post("/student/add", authhentication, async (req, res) => { 
+app.post("/student/add", authhentication, async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
@@ -353,12 +348,8 @@ app.post("/student/add", authhentication, async (req, res) => {
 });
 
 // Form Student or other End
-
-
 //create contest 
-
-
-app.post("/create-contest_new",authhentication,  async (req, res) => {
+app.post("/create-contest_new", authhentication, async (req, res) => {
     try {
         const contests = await createMultipleContestss();
         res.json({
@@ -371,12 +362,8 @@ app.post("/create-contest_new",authhentication,  async (req, res) => {
     }
 });
 
-
-
-app.post("/join-contest", authhentication,   async (req, res) => {
-
+app.post("/join-contest", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    
     try {
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
@@ -399,9 +386,9 @@ app.post("/join-contest", authhentication,   async (req, res) => {
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
         if (contest.combineId.length >= contest.maxParticipants) {
-            contest.isFull = true;  
+            contest.isFull = true;
             await contest.save();
-            await createNewContest(gameAmount); 
+            await createNewContest(gameAmount);
         }
         res.json({
             message: "Successfully joined the contest",
@@ -412,9 +399,6 @@ app.post("/join-contest", authhentication,   async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
 
 app.post("/join-game/many", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname, gameAmount } = req.body;
@@ -533,11 +517,8 @@ app.post("/answer", authhentication, async (req, res) => {
     }
 });
 
-
-
-
 // only Other GK Question
-app.post("/other/question",  async (req, res) => {
+app.post("/other/question", async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -546,7 +527,7 @@ app.post("/other/question",  async (req, res) => {
         }
         if (!req.session.startTime) {
             req.session.startTime = Date.now();
-            req.session.questionCount = 0; 
+            req.session.questionCount = 0;
         }
         const count = await gkQuestion.countDocuments();
         if (count === 0) {
@@ -591,7 +572,6 @@ app.post("/other/question",  async (req, res) => {
     }
 });
 
-
 app.get("/get/score", authhentication, async (req, res) => {
     const { contestId, combineId } = req.query;
     try {
@@ -618,9 +598,8 @@ app.get("/get/score", authhentication, async (req, res) => {
     }
 });
 
-
 //Other Data Answer
-app.post("/other/answer",async (req, res) => {
+app.post("/other/answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -680,57 +659,39 @@ app.post("/other/answer",async (req, res) => {
     }
 });
 
-
- app.get("/contests",  async (req, res) => {
-   try {
-         const contests = await contestdetails.find();
-         const contestsWithStatus = contests
-             .map(contest => {
-                 const isFull = contest.combineId.length >= 2;
-
-                 return {
-                     contestId: contest._id,
-                     gameAmount: contest.amount,
-                     winningAmount:  contest.winningAmount,
-
-                     isFull,
-                     players: contest.combineId.map(player => ({                         combineId: player.id,
-                         score: player.score,
-                        fullname: player.fullname                     })),
-                 };
-             })
-             .filter(contest => !contest.isFull);
-
-         res.send({
-            contests: contestsWithStatus,
-             message: "All contests retrieved successfully"
-         });
-     } catch (error) {
-         console.error("Error:", error);
-         res.status(500).send("Internal server error");
-     }
- });
-
-
-
- app.post("/create-contest_new", async (req, res) => {
+app.get("/contests", async (req, res) => {
     try {
-        const contests = await createMultipleContestss();
-        res.json({
-            message: "Contests created successfully",
-            contests,
+        const contests = await contestdetails.find();
+        const contestsWithStatus = contests
+            .map(contest => {
+                const isFull = contest.combineId.length >= 2;
+
+                return {
+                    contestId: contest._id,
+                    gameAmount: contest.amount,
+                    winningAmount: contest.winningAmount,
+
+                    isFull,
+                    players: contest.combineId.map(player => ({
+                        combineId: player.id,
+                        score: player.score,
+                        fullname: player.fullname
+                    })),
+                };
+            })
+            .filter(contest => !contest.isFull);
+
+        res.send({
+            contests: contestsWithStatus,
+            message: "All contests retrieved successfully"
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
     }
 });
 
-
-
-
-
-app.get("/contestdata", authhentication,async (req, res) => {
+app.get("/contestdata", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -768,20 +729,13 @@ app.get("/contestdata", authhentication,async (req, res) => {
     }
 });
 
-
-
-
-
-
-
 // other Student 11th & 12th Question 
 // Done
-app.post("/student_create_contest", authhentication, async (req, res) => {
-    const initialContestCount = 20;
+app.post("/1-12_create-contest",     async (req, res) => {
     try {
-        const contests = await createStudentMultipleContests(initialContestCount);
+        const contests = await  createStudentMultipleContests();
         res.json({
-            message: "20 contests created successfully",
+            message: "Contests created successfully",
             contests,
         });
     } catch (err) {
@@ -790,20 +744,20 @@ app.post("/student_create_contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/student_join-contest",authhentication, async (req, res) => {
+app.post("/1-12_join-contest",  async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 25;
     try {
+        const contest = await studentContestQuestion.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const gameAmount = contest.amount;
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
         }
         if (wallet.balance < gameAmount) {
             return res.status(400).json({ message: "Insufficient balance" });
-        }
-        const contest = await studentContestQuestion.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
         }
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
@@ -813,7 +767,11 @@ app.post("/student_join-contest",authhentication, async (req, res) => {
         wallet.balance -= gameAmount;
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
-        await checkAndCreateMoreContests();
+        if (contest.combineId.length >= contest.maxParticipants) {
+            contest.isFull = true;
+            await contest.save();
+            await createNewContest(gameAmount);
+        }
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
@@ -909,38 +867,31 @@ app.post("/student_answer", authhentication, async (req, res) => {
     }
 });
 
-
-app.get("/student_contest_answer", authhentication, async (req, res) => {
-    const { id } = req.query;
+app.get("/1-12_get-contest", async (req, res) => {
     try {
-        let contests;
-        if (id) {
-            contests = await studentContestQuestion.findById(id);
-            if (!contests) {
-                return res.status(404).send({ message: "Contest not found" });
-            }
-            contests = [contests];
-        } else {
-            contests = await studentContestQuestion.find();
-        }
-        console.log(contests, "57t5 ")
-        const contestsWithStatus = contests.map(contest => {
-            const isFull = contest.combineId.length >= 2;
-            return {
-                contestId: contest._id,
-                gameAmount: 25,
-                winningAmount: 50,
-                isFull,
-                players: contest.combineId.map(player => ({
-                    combineId: player.id,
-                    score: player.score,
-                    fullname: player.fullname
-                })),
-            };
-        });
+        const contests = await studentContestQuestion.find();
+        const contestsWithStatus = contests
+            .map(contest => {
+                const isFull = contest.combineId.length >= 2;
+
+                return {
+                    contestId: contest._id,
+                    gameAmount: contest.amount,
+                    winningAmount: contest.winningAmount,
+
+                    isFull,
+                    players: contest.combineId.map(player => ({
+                        combineId: player.id,
+                        score: player.score,
+                        fullname: player.fullname
+                    })),
+                };
+            })
+            .filter(contest => !contest.isFull);
+
         res.send({
             contests: contestsWithStatus,
-            message: "Contests retrieved successfully"
+            message: "All contests retrieved successfully"
         });
     } catch (error) {
         console.error("Error:", error);
@@ -985,7 +936,6 @@ app.get("/student_one_contest", authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
-
 
 //  competitive Part 
 // Done
@@ -1197,10 +1147,8 @@ app.get("/competitive_one_contest", authhentication, async (req, res) => {
     }
 });
 
-
 // join game and cut amount
-
-app.post("/amount_five",  async (req, res) => {
+app.post("/amount_five", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 5;
     const winningAmount = gameAmount * 2;
@@ -1240,7 +1188,7 @@ app.post("/amount_five",  async (req, res) => {
     }
 });
 
-app.post("/join_game_ten",  async (req, res) => {
+app.post("/join_game_ten", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 10;
     const winningAmount = gameAmount * 2;
@@ -1280,7 +1228,7 @@ app.post("/join_game_ten",  async (req, res) => {
     }
 });
 
-app.post("/join_game_twentyfive",  async (req, res) => {
+app.post("/join_game_twentyfive", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 25;
     const winningAmount = gameAmount * 2;
@@ -1320,7 +1268,7 @@ app.post("/join_game_twentyfive",  async (req, res) => {
     }
 });
 
-app.post("/join_game_fifty",  async (req, res) => {
+app.post("/join_game_fifty", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 50;
     const winningAmount = gameAmount * 2;
@@ -1360,7 +1308,7 @@ app.post("/join_game_fifty",  async (req, res) => {
     }
 });
 
-app.post("/join_game_hundred",  async (req, res) => {
+app.post("/join_game_hundred", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 100;
     const winningAmount = gameAmount * 2;
@@ -1400,7 +1348,7 @@ app.post("/join_game_hundred",  async (req, res) => {
     }
 });
 
-app.post("/join_game_fivehundred",  async (req, res) => {
+app.post("/join_game_fivehundred", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     const gameAmount = 500;
     const winningAmount = gameAmount * 2;
@@ -1440,13 +1388,10 @@ app.post("/join_game_fivehundred",  async (req, res) => {
     }
 });
 
-
-
-
 // new fix wallet id
-app.post("/system_compare", async (req, res) => {
-    const { contestId, combineId1, combineId2 , winningAmount } = req.body;
-    const fixedWalletId = "66fcf223377b6df30f65389d"; 
+app.post("/system_compare", authhentication, async (req, res) => {
+    const { contestId, combineId1, combineId2, winningAmount } = req.body;
+    const fixedWalletId = "66fcf223377b6df30f65389d";
     try {
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
@@ -1567,7 +1512,7 @@ app.post("/game/compare", authhentication, async (req, res) => {
                 message: "Winner determined, but no amount to distribute",
                 winner: {
                     combineId: winner.id,
-                    name: winner.fullname, 
+                    name: winner.fullname,
                 },
             });
         }
@@ -1644,27 +1589,8 @@ app.post("/many/game/compare", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
 // Game Compare Two or Four end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // leaderboard start 
-
 
 // game Leaderboard user-2
 app.post("/game/result", authhentication, async (req, res) => {
@@ -1801,17 +1727,7 @@ app.get("/leaderboard", authhentication, async (req, res) => {
     }
 });
 
-
-
-
-
-
-
-
-
-
 //monthly Api Start 
-
 // Monthly Start  create 
 app.post("/monthly-contest", authhentication, async (req, res) => {
     const initialContestCount = 1;
@@ -1859,7 +1775,6 @@ app.post("/monthly_join_contest", authhentication, async (req, res) => {
     }
 });
 
-
 // Monthly leaderboard
 app.get("/monthly-leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
@@ -1871,19 +1786,6 @@ app.get("/monthly-leaderboard", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Add wallet amount
 app.post("/wallet/add", authhentication, async (req, res) => {
@@ -2051,7 +1953,6 @@ app.post("/school/join", authhentication, async (req, res) => {
         if (schoolcontest.participants.length >= 1000) {
             return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
         }
-
         if (schoolcontest.participants.some(participant => participant.combineId.toString() === combineId)) {
             return res.status(400).send("This combineId has already joined the contest.");
         }
@@ -2068,15 +1969,7 @@ app.post("/school/join", authhentication, async (req, res) => {
     }
 });
 
-
-
-//50   33.33   16.67
-
-  
-
-
 // practice  Contest
-
 app.post("/practice_Contest", authhentication, async (req, res) => {
     try {
         const { combineId, fullName } = req.body;
@@ -2094,7 +1987,6 @@ app.post("/practice_Contest", authhentication, async (req, res) => {
         return res.status(500).json({ error: "An error occurred while creating the contest" });
     }
 });
-
 
 app.post("/practice_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -2166,12 +2058,6 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
-
-
-
 
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
