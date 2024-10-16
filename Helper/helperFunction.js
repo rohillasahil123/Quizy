@@ -97,7 +97,7 @@ async function  createStudentMultipleContests() {
 }
 
 
-async function createNewContest(amount) {
+async function createNewContestSchool(amount) {
   const newContest = new studentContestQuestion({
       combineId: [],  
       maxParticipants: 2,
@@ -157,5 +157,6 @@ module.exports = {
   createMultipleCompetitiveContests,                  
   createMultipleCollageContests,
   createMultipleContestss,
-  createNewContest
+  createNewContest,
+  createNewContestSchool
 };
