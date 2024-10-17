@@ -362,7 +362,7 @@ app.post("/create-contest_new", authhentication, async (req, res) => {
     }
 });
 
-app.post("/join-contest",  authhentication, async (req, res) => {
+app.post("join-game",  authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     try {
         const contest = await contestdetails.findById(contestId);
