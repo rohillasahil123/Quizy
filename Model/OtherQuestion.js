@@ -15,7 +15,8 @@ const otherQuestionSchema = new mongoose.Schema({
     options: {
         type: [String],
         required: true
-    }
+    },
+  
 })
 
 module.exports = mongoose.model("Gk_Question" , otherQuestionSchema);
