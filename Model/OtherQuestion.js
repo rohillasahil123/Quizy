@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const otherQuestionSchema = new mongoose.Schema({
     question: {
@@ -18,6 +17,5 @@ const otherQuestionSchema = new mongoose.Schema({
     }
 });
 
-otherQuestionSchema.plugin(AutoIncrement, {inc_field: 'number'});
 
 module.exports = mongoose.model("Gk_Question", otherQuestionSchema);
