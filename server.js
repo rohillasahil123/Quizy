@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
+const cors = require ("cors");
 require("./configfile/config.js");
 const { getUserById,
     getWalletBycombineId,
@@ -36,6 +37,7 @@ const competitiveContest = require("./Model/competitive.js")
 
 
 const app = express();
+app.use(cors())
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
 
