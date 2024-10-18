@@ -2085,8 +2085,8 @@ app.post("/practice_answer", authhentication, async (req, res) => {
 
 app.post("/addquestiongk", async (req, res) => {
     try {
-        const { question, correctAnswer, options, number } = req.body;
-        if (!question || !correctAnswer || !options || !number) {
+        const { question, correctAnswer, options } = req.body;
+        if (!question || !correctAnswer || !options ) {
             return res.status(400).json({ message: "All fields are required" });
         }
         if (!Array.isArray(options) || options.length < 2) {
@@ -2095,8 +2095,7 @@ app.post("/addquestiongk", async (req, res) => {
         const newQuestion = new gkQuestion({
             question,
             correctAnswer,
-            options,
-            number,
+            options
         });
         await newQuestion.save();
         res.status(201).json({ message: "Question added successfully", question: newQuestion });

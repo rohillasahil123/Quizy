@@ -15,12 +15,8 @@ const otherQuestionSchema = new mongoose.Schema({
     options: {
         type: [String],
         required: true
-    },
-    number: {
-        type: Number,
-        required: true,
-        unique:true
     }
 })
 
+otherQuestionSchema.plugin(AutoIncrement, {inc_field: 'number'});
 module.exports = mongoose.model("Gk_Question" , otherQuestionSchema);
