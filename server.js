@@ -1072,7 +1072,7 @@ app.post("/competitive_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/competitive_contest_answer", authhentication, async (req, res) => {
+app.get("/competitive_contest_show", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -1110,7 +1110,7 @@ app.get("/competitive_contest_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/competitive_one_contest", authhentication, async (req, res) => {
+app.get("/competitive_one_contest_show", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -2059,6 +2059,52 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Site Api
+
+app.post("/addquestiongk", async (req, res) => {
+    try {
+        const { question, correctAnswer, options, number } = req.body;
+        if (!question || !correctAnswer || !options || !number) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        if (!Array.isArray(options) || options.length < 2) {
+            return res.status(400).json({ message: "Options must be an array with at least two elements" });
+        }
+        const newQuestion = new gkQuestion({
+            question,
+            correctAnswer,
+            options,
+            number,
+        });
+        await newQuestion.save();
+        res.status(201).json({ message: "Question added successfully", question: newQuestion });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
 
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
