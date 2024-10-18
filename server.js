@@ -37,7 +37,7 @@ const competitiveContest = require("./Model/competitive.js")
 
 
 const app = express();
-app.use(cors())
+
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
 
