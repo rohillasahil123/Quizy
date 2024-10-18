@@ -2083,27 +2083,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
 
 // Site Api
 
-app.post("/addquestiongk", async (req, res) => {
-    try {
-        const { question, correctAnswer, options } = req.body;
-        if (!question || !correctAnswer || !options ) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-        if (!Array.isArray(options) || options.length < 2) {
-            return res.status(400).json({ message: "Options must be an array with at least two elements" });
-        }
-        const newQuestion = new gkQuestion({
-            question,
-            correctAnswer,
-            options
-        });
-        await newQuestion.save();
-        res.status(201).json({ message: "Question added successfully", question: newQuestion });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
+
 
 
 
