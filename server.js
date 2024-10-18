@@ -6,14 +6,13 @@ const { getUserById,
     getWalletBycombineId,
     updateWallet,
     logTransaction,
-    checkAndCreateMoreContests,
     createNewContest,
     createMonthlyMultipleContests,
     createStudentMultipleContests,
     createMultipleCompetitiveContests,
-    // createMultipleCollageContests,
     createMultipleContestss,
-    createNewContestSchool
+    createNewContestSchool,
+    createNewcompetitiveContest
 } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
@@ -30,7 +29,6 @@ const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
 const contest = require("./Model/contest.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
-// const contestData = require("./Model/School.js")
 const monthContest = require("./Model/MonthlyContest.js")
 const practiceContest = require("./Model/Practice_Contest.js")
 const studentContestQuestion = require("./Model/student_Question.js")
@@ -939,12 +937,11 @@ app.get("/student_one_contest", authhentication, async (req, res) => {
 
 //  competitive Part 
 // Done
-app.post("/competitive_create_contest", authhentication, async (req, res) => {
-    const initialContestCount = 20;
+app.post("/competitive_create_contest",  authhentication,  async (req, res) => {
     try {
-        const contests = await createMultipleCompetitiveContests(initialContestCount);
+        const contests = await createMultipleCompetitiveContests();
         res.json({
-            message: "20 contests created successfully",
+            message: "Contests created successfully",
             contests,
         });
     } catch (err) {
@@ -953,20 +950,20 @@ app.post("/competitive_create_contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/competitive_join-contest", authhentication, async (req, res) => {
+app.post("/competitive_join-contest",  authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 25;
     try {
+        const contest = await competitiveContest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const gameAmount = contest.amount;
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
         }
         if (wallet.balance < gameAmount) {
             return res.status(400).json({ message: "Insufficient balance" });
-        }
-        const contest = await competitiveContest.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
         }
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
@@ -976,7 +973,11 @@ app.post("/competitive_join-contest", authhentication, async (req, res) => {
         wallet.balance -= gameAmount;
         await wallet.save();
         await logTransaction(combineId, -gameAmount, "debit");
-        await checkAndCreateMoreContests();
+        if (contest.combineId.length >= contest.maxParticipants) {
+            contest.isFull = true;
+            await contest.save();
+            await createNewcompetitiveContest(gameAmount);
+        }
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,

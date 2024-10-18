@@ -53,7 +53,6 @@ async function createMultipleContestss() {
   return contests;
 }
 
-
 async function createNewContest(amount) {
   const newContest = new contestdetails({
       combineId: [],  
@@ -64,9 +63,6 @@ async function createNewContest(amount) {
   });
   return await newContest.save(); 
 }
-
-
-
 
 //  Student contest
 async function  createStudentMultipleContests() {
@@ -96,7 +92,6 @@ async function  createStudentMultipleContests() {
   return contests;
 }
 
-
 async function createNewContestSchool(amount) {
   const newContest = new studentContestQuestion({
       combineId: [],  
@@ -122,17 +117,45 @@ async function createMonthlyMultipleContests(contestCount) {
 }
 
 // compatitive Exam
-async function createMultipleCompetitiveContests(contestCount) {
-  const contestCompetitive = [];
-  for (let i = 0; i < contestCount; i++) {
-    const newContestCompetitive = new competitiveContest({
-      combineId: [],
-      maxParticipants: 2
-    });
-    contestCompetitive.push(await newContestCompetitive.save());
+async function createMultipleCompetitiveContests() {
+  const contestAmounts = [5, 10, 25, 50, 100, 500];  
+  const contests = [];
+  for (let amount of contestAmounts) {
+      const existingContest = await competitiveContest.findOne({ amount:amount, isFull: false });
+      if (existingContest) {
+          if (existingContest.combineId.length >= existingContest.maxParticipants) {
+              existingContest.isFull = true;
+              await existingContest.save();
+              const newContest = await createNewcompetitiveContest(amount);
+              contests.push(newContest);
+              console.log("two")
+          } else {
+              contests.push(existingContest);
+              console.log("3")
+          }
+      } else {
+          const newContest = await createNewcompetitiveContest(amount);
+          contests.push(newContest);
+          console.log("4")
+      }
   }
-  return contestCompetitive;
+
+  return contests;
 }
+
+async function createNewcompetitiveContest(amount) {
+  const newContest = new competitiveContest({
+      combineId: [],  
+      maxParticipants: 2,
+      amount: amount,  
+      winningAmount: amount * 2, 
+      isFull: false  
+  });
+  return await newContest.save(); 
+}
+
+
+
 
 // collage 
 async function createMultipleCollageContests(contestCount) {
@@ -158,5 +181,6 @@ module.exports = {
   createMultipleCollageContests,
   createMultipleContestss,
   createNewContest,
-  createNewContestSchool
+  createNewContestSchool,
+  createNewcompetitiveContest
 };
