@@ -525,10 +525,7 @@ app.post("/other/question", async (req, res) => {
         if (!othervalues) {
             return res.status(400).send({ message: "Data is not available" });
         }
-        if (!req.session.startTime) {
-            req.session.startTime = Date.now();
-            req.session.questionCount = 0;
-        }
+   
         const count = await gkQuestion.countDocuments();
         if (count === 0) {
             return res.status(404).send({
@@ -542,29 +539,6 @@ app.post("/other/question", async (req, res) => {
         if (!randomQuestion) {
             return res.status(404).send({ message: "Unable to fetch a question" });
         }
-
-        // Increment question count
-        req.session.questionCount += 1;
-
-        // Check if 10 questions are completed
-        if (req.session.questionCount >= 10) {
-            const endTime = Date.now();
-            const totalTime = (endTime - req.session.startTime) / 1000;  // Calculate time in seconds
-
-            // Store time in the database
-            othervalues.timeTaken = totalTime;  // Assuming 'timeTaken' is a field in CombineDetails schema
-            await othervalues.save();
-
-            // Reset session variables
-            req.session.startTime = null;
-            req.session.questionCount = 0;
-
-            return res.status(200).send({
-                message: "10 questions completed",
-                totalTime: totalTime + " seconds",
-            });
-        }
-
         res.status(200).send({ randomQuestion, totalQuestions: count });
     } catch (error) {
         console.error(error);
