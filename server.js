@@ -362,14 +362,16 @@ app.post("/create-contest_new", authhentication, async (req, res) => {
     }
 });
 
-app.post("join-game",  authhentication, async (req, res) => {
+app.post("/join-game",  authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
+    console.log("10")
     try {
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
         const gameAmount = contest.amount;
+        console.log("2")
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
@@ -380,16 +382,20 @@ app.post("join-game",  authhentication, async (req, res) => {
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
         }
+        console.log("1")
         contest.combineId.push({ id: combineId, fullname: fullname });
         await contest.save();
+        console.log("3")
         wallet.balance -= gameAmount;
         await wallet.save();
+        console.log("4")
         await logTransaction(combineId, -gameAmount, "debit");
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
             await createNewContest(gameAmount);
         }
+        console.log("5")
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
@@ -518,7 +524,7 @@ app.post("/answer", authhentication, async (req, res) => {
 });
 
 // only Other GK Question
-app.post("/other/question", async (req, res) => {
+app.post("/other/question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
