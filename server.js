@@ -40,7 +40,7 @@ const app = express();
 
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
-
+app.use(cors())
 app.use(express.json());
 app.use(bodyParser.json());
 
