@@ -952,7 +952,7 @@ app.post("/competitive_join-contest",  authhentication, async (req, res) => {
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
-            await createNewContest(gameAmount);
+            await createNewcompetitiveContest(gameAmount);
         }
         res.json({
             message: "Successfully joined the contest",
