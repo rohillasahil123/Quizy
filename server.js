@@ -631,7 +631,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/contests", async (req, res) => {
+app.get("/contests", authhentication, async (req, res) => {
     try {
         const contests = await contestdetails.find();
         const contestsWithStatus = contests
@@ -663,7 +663,7 @@ app.get("/contests", async (req, res) => {
     }
 });
 
-app.get("/contestdata", async (req, res) => {
+app.get("/contestdata", authhentication, async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -908,7 +908,6 @@ app.get("/student_one_contest", authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
-
 //  competitive Part 
 // Done
 app.post("/competitive_create_contest",  authhentication,  async (req, res) => {
