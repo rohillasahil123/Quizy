@@ -924,14 +924,16 @@ app.post("/competitive_create_contest",  authhentication,  async (req, res) => {
     }
 });
 
-app.post("/competitive_join-contest",   async (req, res) => {
+app.post("/competitive_join-contest",  authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
+    console.log("10")
     try {
         const contest = await competitiveContest.findById(contestId);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
         const gameAmount = contest.amount;
+        console.log("2")
         const wallet = await getWalletBycombineId(combineId);
         if (!wallet) {
             return res.status(404).json({ message: "Wallet not found" });
@@ -950,7 +952,7 @@ app.post("/competitive_join-contest",   async (req, res) => {
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
-            await createNewcompetitiveContest(gameAmount);
+            await createNewContest(gameAmount);
         }
         res.json({
             message: "Successfully joined the contest",
