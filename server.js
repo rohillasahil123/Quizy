@@ -28,13 +28,11 @@ const CombineDetails = require("./Model/OtherData.js");
 const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const gkQuestion = require("./Model/OtherQuestion.js");
-const contest = require("./Model/contest.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 const monthContest = require("./Model/MonthlyContest.js")
 const practiceContest = require("./Model/Practice_Contest.js")
 const studentContestQuestion = require("./Model/student_Question.js")
 const competitiveContest = require("./Model/competitive.js")
-
 
 const app = express();
 
@@ -604,9 +602,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
                 });
             }
             leaderboardEntry.score += 1;
-
             await leaderboardEntry.save();
-
             let contest = await contestdetails.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
@@ -758,7 +754,7 @@ app.post("/1-12_join-contest",  authhentication,  async (req, res) => {
     }
 });
 
-app.post("/student_question", authhentication, async (req, res) => {
+app.post("/1-12_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const studentvalues = await CombineDetails.findById(combineId);
@@ -786,7 +782,7 @@ app.post("/student_question", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/student_answer", authhentication, async (req, res) => {
+app.post("/1-12_answer", authhentication, async (req, res) => {
     const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
     try {
         const question = await Question.findById(questionId);
@@ -1068,8 +1064,8 @@ app.get("/competitive_contest_show", authhentication, async (req, res) => {
             const isFull = contest.combineId.length >= 2;
             return {
                 contestId: contest._id,
-                gameAmount: 25,
-                winningAmount: 50,
+                gameAmount: contest.amount,
+                winningAmount:contest.winningAmount,
                 isFull,
                 players: contest.combineId.map(player => ({
                     combineId: player.id,
@@ -1194,72 +1190,6 @@ app.post("/system_compare", authhentication, async (req, res) => {
     }
 });
 
-// Game Compare Two or Four Start 2
-app.post("/game/compare", authhentication, async (req, res) => {
-    const { contestId, combineId1, combineId2, winningAmount } = req.body;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
-        if (!user1) {
-            return res.status(404).json({ message: "User 1 not found in contest" });
-        }
-        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
-        if (!user2) {
-            return res.status(404).json({ message: "User 2 not found in contest" });
-        }
-        let winner;
-        if (user1.score > user2.score) {
-            winner = user1;
-        } else if (user1.score < user2.score) {
-            winner = user2;
-        } else {
-            return res.status(200).json({ message: "It's a tie!", user1, user2 });
-        }
-        const winnerAmount = (winningAmount * 0.75);
-        const walletAmount = (winningAmount * 0.25);
-        if (winnerAmount > 0) {
-            const winnerWallet = await getWalletBycombineId(winner.id);
-            if (!winnerWallet) {
-                return res.status(404).json({ message: "Winner wallet not found" });
-            }
-            winnerWallet.balance += parseInt(winnerAmount);
-            await updateWallet(winnerWallet);
-            await logTransaction(winner.id, winnerAmount, "credit");
-            const newWalletId = new mongoose.Types.ObjectId();
-            let newWallet = await getWalletBycombineId(newWalletId.toString());
-            if (!newWallet) {
-                newWallet = new Wallet({ id: newWalletId, balance: 0 });
-            }
-            newWallet.balance += parseInt(walletAmount);
-            await updateWallet(newWallet);
-            await logTransaction(newWalletId, walletAmount, "credit");
-            return res.status(200).json({
-                message: "Winner determined and wallets updated",
-                winner: {
-                    combineId: winner.id,
-                    name: winner.fullname,
-                    score: winner.score,
-                    winnerWallet: winnerWallet.balance,
-                    newWallet: newWallet.balance,
-                },
-            });
-        } else {
-            return res.status(200).json({
-                message: "Winner determined, but no amount to distribute",
-                winner: {
-                    combineId: winner.id,
-                    name: winner.fullname,
-                },
-            });
-        }
-    } catch (error) {
-        console.error("Error occurred:", error);
-        res.status(500).send({ message: "Internal server error" });
-    }
-});
 
 // Compare-Game-4 user
 app.post("/many/game/compare", authhentication, async (req, res) => {
@@ -1636,6 +1566,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 });
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 app.post("/create-contest/time", authhentication, async (req, res) => {
     const { combineId, fullname, gameAmount } = req.body;
     try {
@@ -1672,41 +1603,7 @@ app.post("/create-contest/time", authhentication, async (req, res) => {
     }
 });
 
-app.post("/school/join", authhentication, async (req, res) => {
-    try {
-        const { combineId, fullname } = req.body;
-        if (!combineId || !fullname) {
-            return res.status(400).send("combineId and fullname are required");
-        }
-        const response = await CombineDetails.findById(combineId);
-        if (!response) {
-            return res.status(404).send("School not found");
-        }
-        const schoolName = response.studentDetails.schoolName;
-        let schoolcontest = await contestData.findOne({ schoolName });
-        if (!schoolcontest) {
-            const endingTime = new Date();
-            endingTime.setHours(endingTime.getHours() + 1);
-            schoolcontest = new contestData({ schoolName, participants: [], endingTime });
-        }
-        if (schoolcontest.participants.length >= 1000) {
-            return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
-        }
-        if (schoolcontest.participants.some(participant => participant.combineId.toString() === combineId)) {
-            return res.status(400).send("This combineId has already joined the contest.");
-        }
-        schoolcontest.participants.push({
-            combineId,
-            fullname,
-            joinedAt: Date.now()
-        });
-        await schoolcontest.save();
-        res.send({ message: "Successfully joined the contest", schoolcontest });
-    } catch (error) {
-        console.error("Error:", error);
-        res.status(500).send("Internal server error");
-    }
-});
+
 
 // practice  Contest
 app.post("/practice_Contest", authhentication, async (req, res) => {
@@ -1845,6 +1742,53 @@ app.post("/addquestiongk", async (req, res) => {
     }
 });
 
+
+//  app.post ("create_school_contest" , async (req , res)=>{
+//     try {
+//         const newSchoolContest = new schoolContest(req.body);
+//         const data =  await newSchoolContest.save()
+//         res.status(201).json({message : "School contest created successfully" , data : data})
+//     } catch (error) {
+//         res.status(500).send(message ,"internel error")
+//     }
+
+//  })
+
+// app.post("/school/join", authhentication, async (req, res) => {
+//     try {
+//         const { combineId, fullname } = req.body;
+//         if (!combineId || !fullname) {
+//             return res.status(400).send("combineId and fullname are required");
+//         }
+//         const response = await CombineDetails.findById(combineId);
+//         if (!response) {
+//             return res.status(404).send("School not found");
+//         }
+//         const schoolName = response.studentDetails.schoolName;
+//         let schoolcontest = await contestData.findOne({ schoolName });
+//         if (!schoolcontest) {
+//             const endingTime = new Date();
+//             endingTime.setHours(endingTime.getHours() + 1);
+//             schoolcontest = new contestData({ schoolName, participants: [], endingTime });
+//         }
+//         if (schoolcontest.participants.length >= 1000) {
+//             return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
+//         }
+//         if (schoolcontest.participants.some(participant => participant.combineId.toString() === combineId)) {
+//             return res.status(400).send("This combineId has already joined the contest.");
+//         }
+//         schoolcontest.participants.push({
+//             combineId,
+//             fullname,
+//             joinedAt: Date.now()
+//         });
+//         await schoolcontest.save();
+//         res.send({ message: "Successfully joined the contest", schoolcontest });
+//     } catch (error) {
+//         console.error("Error:", error);
+//         res.status(500).send("Internal server error");
+//     }
+// });
 
 
 
