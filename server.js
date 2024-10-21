@@ -382,20 +382,16 @@ app.post("/join-game",  authhentication, async (req, res) => {
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
         }
-        console.log("1")
         contest.combineId.push({ id: combineId, fullname: fullname });
         await contest.save();
-        console.log("3")
         wallet.balance -= gameAmount;
         await wallet.save();
-        console.log("4")
         await logTransaction(combineId, -gameAmount, "debit");
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
             await createNewContest(gameAmount);
         }
-        console.log("5")
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
@@ -639,7 +635,7 @@ app.post("/other/answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/contests", authhentication, async (req, res) => {
+app.get("/contests", async (req, res) => {
     try {
         const contests = await contestdetails.find();
         const contestsWithStatus = contests
@@ -671,7 +667,7 @@ app.get("/contests", authhentication, async (req, res) => {
     }
 });
 
-app.get("/contestdata", authhentication, async (req, res) => {
+app.get("/contestdata", async (req, res) => {
     const { id } = req.query;
     try {
         let contests;
@@ -932,7 +928,7 @@ app.post("/competitive_create_contest",  authhentication,  async (req, res) => {
     }
 });
 
-app.post("/competitive_join-contest",  authhentication, async (req, res) => {
+app.post("/competitive_join-contest",   async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     try {
         const contest = await competitiveContest.findById(contestId);
@@ -1130,253 +1126,12 @@ app.get("/competitive_one_contest_show", authhentication, async (req, res) => {
     }
 });
 
-// join game and cut amount
-app.post("/amount_five", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 5;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/join_game_ten", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 10;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/join_game_twentyfive", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 25;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/join_game_fifty", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 50;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/join_game_hundred", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 100;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/join_game_fivehundred", authhentication, async (req, res) => {
-    const { contestId, combineId, fullname } = req.body;
-    const gameAmount = 500;
-    const winningAmount = gameAmount * 2;
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contest.combineId.length >= 2) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        const user = await getUserById(combineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance. ₹5 required to join." });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-            balance: wallet.balance,
-            winningAmount
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
 // new fix wallet id
 app.post("/system_compare", authhentication, async (req, res) => {
-    const { contestId, combineId1, combineId2, winningAmount } = req.body;
+    const { contestId, combineId1, combineId2 } = req.body;
     const fixedWalletId = "66fcf223377b6df30f65389d";
     try {
-        const contest = await contestdetails.findById(contestId);
+        const contest = await competitiveContest.findById(contestId);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
@@ -1388,6 +1143,7 @@ app.post("/system_compare", authhentication, async (req, res) => {
         if (!user2) {
             return res.status(404).json({ message: "User 2 not found in contest" });
         }
+        const  winningAmount = contest. winningAmount 
         let winner;
         if (user1.score > user2.score) {
             winner = user1;
