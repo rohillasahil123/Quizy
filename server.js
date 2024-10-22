@@ -716,7 +716,7 @@ app.post("/1-12_create-contest",   authhentication,   async (req, res) => {
     }
 });
 
-app.post("/1-12_join-contest",  authhentication,  async (req, res) => {
+app.post("/1-12_join-contest", authhentication,   async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
     try {
         const contest = await studentContestQuestion.findById(contestId);
@@ -754,38 +754,39 @@ app.post("/1-12_join-contest",  authhentication,  async (req, res) => {
     }
 });
 
-app.post("/1-12_question", authhentication, async (req, res) => {
+app.post("/1-12_questions", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
-        const studentvalues = await CombineDetails.findById(combineId);
-        if (!studentvalues) {
-            return res.status(400).send({ message: "Class is not available" });
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "Data is not available" });
         }
-        const classvalue = studentvalues.studentDetails.classvalue;
-        if (!classvalue) {
-            return res.status(400).send({ message: "Student's class value is not defined" });
-        }
-        const count = await Question.countDocuments({ classvalue });
+   
+        const count = await gkQuestion.countDocuments();
         if (count === 0) {
-            return res.status(404).send({ message: "No questions available for this class" });
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
         }
-        const random = Math.floor(Math.random() * count);
-        const question = await Question.findOne({ classvalue }).skip(random);
-        if (!question) {
-            return res.status(404).send({ message: "Question not found" });
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+
+        if (!randomQuestion) {
+            return res.status(404).send({ message: "Unable to fetch a question" });
         }
-        res.json({ ...question.toJSON() });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal server error" });
     }
 });
 
 // Verify Answer Api
-app.post("/1-12_answer", authhentication, async (req, res) => {
-    const { combineId, contestId, questionId, selectedOption, combineuser } = req.body;
+app.post("/1-12_answer", authhentication,   async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
-        const question = await Question.findById(questionId);
+        const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
@@ -795,10 +796,13 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+
         let contestScore = 0;
+
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
+
             let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
             if (!leaderboardEntry) {
                 leaderboardEntry = new leaderboarddetail({
@@ -808,9 +812,7 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
                 });
             }
             leaderboardEntry.score += 1;
-
             await leaderboardEntry.save();
-
             let contest = await studentContestQuestion.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
@@ -827,7 +829,7 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
         res.json({
             combineId,
             contestId,
-            questionId,
+            gkquestionId,
             selectedOption,
             isCorrect,
             combineuser,
@@ -839,7 +841,7 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/1-12_get-contest",  authhentication, async (req, res) => {
+app.get("/1-12_get-contest", authhentication,   async (req, res) => {
     try {
         const contests = await studentContestQuestion.find();
         const contestsWithStatus = contests
@@ -871,7 +873,7 @@ app.get("/1-12_get-contest",  authhentication, async (req, res) => {
     }
 });
 
-app.get("/student_one_contest", authhentication, async (req, res) => {
+app.get("/1-12_one_contest", authhentication,   async (req, res) => {
     const { id } = req.query;
     try {
         let contests;

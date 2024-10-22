@@ -73,20 +73,16 @@ async function  createStudentMultipleContests() {
       const existingContest = await studentContestQuestion.findOne({ amount:amount, isFull: false });
       if (existingContest) {
           if (existingContest.combineId.length >= existingContest.maxParticipants) {
-            console.log("one")
               existingContest.isFull = true;
               await existingContest.save();
               const newContest = await createNewContest(amount);
               contests.push(newContest);
-              console.log("two")
           } else {
               contests.push(existingContest);
-              console.log("3")
           }
       } else {
-          const newContest = await createNewContest(amount);
+          const newContest = await createNewContestSchool(amount);
           contests.push(newContest);
-          console.log("4")
       }
   }
 
