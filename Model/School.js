@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const contestSchema = new mongoose.Schema({
+const contestSchoolSchema = new mongoose.Schema({
     schoolName: {
         type: String,
         required: true
@@ -15,16 +15,16 @@ const contestSchema = new mongoose.Schema({
                 type: String,
                 required: true
             },
-            joinedAt: {
-                type: Date,
-                default: Date.now
+            score: {
+                type: Number,
+                default: 0
             }
         }
     ],
-    endingTime: {
-        type: Date,
-        required: true
+    maxParticipants: {
+        type: Number,
+        default: 100000
     }
 });
 
-module.exports = mongoose.model('Contest', contestSchema);
+module.exports = mongoose.model('SchoolContest', contestSchoolSchema);

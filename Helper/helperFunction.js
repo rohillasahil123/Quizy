@@ -6,6 +6,7 @@ const monthContest = require("../Model/MonthlyContest.js")
 const studentContestQuestion = require("../Model/student_Question.js")
 const competitiveContest = require("../Model/competitive.js")
 const collageContest = require("../Model/collage.js")
+const SchoolContest = require ("../Model/School.js")
 
 async function getUserById(combineId) {
   return await CombineDetails.findById(combineId);
@@ -170,6 +171,42 @@ async function createMultipleCollageContests(contestCount) {
   return contestCollage;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// School  Site function 
+
+
+async function createSchoolMultipleContests(contestCount) {
+  const contestSchool= [];
+  for (let i = 0; i < contestCount; i++) {
+    const newContestmonth = new SchoolContest({
+      combineId: [],
+      schoolName:"",
+      maxParticipants: 100000
+    });
+    contestSchool.push(await newContestmonth.save());
+  }
+  return contestSchool;
+}
+
+
+
+
+
+
+
 module.exports = {
   getUserById,
   getWalletBycombineId,
@@ -182,5 +219,6 @@ module.exports = {
   createMultipleContestss,
   createNewContest,
   createNewContestSchool,
-  createNewcompetitiveContest
+  createNewcompetitiveContest,
+  createSchoolMultipleContests
 };

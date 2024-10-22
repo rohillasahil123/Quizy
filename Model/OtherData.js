@@ -26,7 +26,7 @@ const studentSchema = new mongoose.Schema({
     classvalue: { type: String, required: true },
     mediumName: { type: String, required: true },
     aadharcard: { type: String, required: true },
-    _id: false
+   
 });
 
 // Combine the two schemas into a single schema

@@ -13,7 +13,7 @@ const { getUserById,
     createMultipleCompetitiveContests,
     createMultipleContestss,
     createNewContestSchool,
-    createNewcompetitiveContest
+    createNewcompetitiveContest,
 } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
@@ -33,6 +33,7 @@ const monthContest = require("./Model/MonthlyContest.js")
 const practiceContest = require("./Model/Practice_Contest.js")
 const studentContestQuestion = require("./Model/student_Question.js")
 const competitiveContest = require("./Model/competitive.js")
+const SchoolContest = require ("./Model/School.js")
 
 const app = express();
 
@@ -41,7 +42,6 @@ const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bY
 app.use(cors())
 app.use(express.json());
 app.use(bodyParser.json());
-
 
 
 // Login needed Api Start
@@ -1047,7 +1047,7 @@ app.post("/competitive_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/competitive_contest_show", authhentication, async (req, res) => {
+app.get("/competitive_contest_show", authhentication, async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -1566,43 +1566,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-app.post("/create-contest/time", authhentication, async (req, res) => {
-    const { combineId, fullname, gameAmount } = req.body;
-    try {
-        await delay(10000);
-        const userData = await CombineDetails.findById(combineId);
-        if (!userData) {
-            console.error("User not found");
-            return res.status(404).json({ message: "User not found" });
-        }
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
-            return res.status(400).json({ message: "Insufficient balance" });
-        }
-        wallet.balance -= gameAmount;
-        await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        const newContest = new contestdetails({
-            combineId: [{ id: combineId, fullname: fullname }],
-        });
-        const savedContest = await newContest.save();
-
-        res.json({
-            message: "Contest created and user joined game successfully",
-            contestId: savedContest._id,
-            fullname,
-            balance: wallet.balance,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
 
 
 
@@ -1744,55 +1708,93 @@ app.post("/addquestiongk", async (req, res) => {
 });
 
 
-//  app.post ("create_school_contest" , async (req , res)=>{
-//     try {
-//         const newSchoolContest = new schoolContest(req.body);
-//         const data =  await newSchoolContest.save()
-//         res.status(201).json({message : "School contest created successfully" , data : data})
-//     } catch (error) {
-//         res.status(500).send(message ,"internel error")
-//     }
+// School APi 
+app.post('/create-school-contest',authhentication, async (req, res) => {
+    const { schoolName } = req.body;
 
-//  })
+    try {
+        const newContest = new SchoolContest({
+            schoolName,
+            participants: [], 
+            maxParticipants: 100000 
+        });
+        await newContest.save();
+        res.json({
+            message: 'School contest created successfully',
+            contest: newContest
+        });
+    } catch (err) {
+        console.error('Error creating school contest:', err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
+    }
+});
 
-// app.post("/school/join", authhentication, async (req, res) => {
-//     try {
-//         const { combineId, fullname } = req.body;
-//         if (!combineId || !fullname) {
-//             return res.status(400).send("combineId and fullname are required");
-//         }
-//         const response = await CombineDetails.findById(combineId);
-//         if (!response) {
-//             return res.status(404).send("School not found");
-//         }
-//         const schoolName = response.studentDetails.schoolName;
-//         let schoolcontest = await contestData.findOne({ schoolName });
-//         if (!schoolcontest) {
-//             const endingTime = new Date();
-//             endingTime.setHours(endingTime.getHours() + 1);
-//             schoolcontest = new contestData({ schoolName, participants: [], endingTime });
-//         }
-//         if (schoolcontest.participants.length >= 1000) {
-//             return res.status(403).send("Contest is full. Maximum of 1000 participants allowed.");
-//         }
-//         if (schoolcontest.participants.some(participant => participant.combineId.toString() === combineId)) {
-//             return res.status(400).send("This combineId has already joined the contest.");
-//         }
-//         schoolcontest.participants.push({
-//             combineId,
-//             fullname,
-//             joinedAt: Date.now()
-//         });
-//         await schoolcontest.save();
-//         res.send({ message: "Successfully joined the contest", schoolcontest });
-//     } catch (error) {
-//         console.error("Error:", error);
-//         res.status(500).send("Internal server error");
-//     }
-// });
+
+app.post('/join-school-contest', authhentication, async (req, res) => {
+    const { schoolName, combineId, fullname, schoolContestId } = req.body; 
+    try {
+        const user = await CombineDetails.findById( combineId); 
+        
+        if (!user) {
+            return res.status(400).json({ message: 'User does not exist.' });
+        }
+        if (user.studentDetails.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
+            return res.status(400).json({ message: 'User is not from the specified school.' });
+        }
+        const contest = await SchoolContest.findById(schoolContestId);
+        if (!contest || contest.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
+            return res.status(404).json({ message: 'Contest not found for the specified school.' });
+        }
+        const participantExists = contest.participants.some(participant => participant.combineId.toString() === combineId);
+        if (participantExists) {
+            return res.status(400).json({ message: 'User is already a participant in this contest.' });
+        }
+        contest.participants.push({ combineId, fullname, score: 0 });
+        await contest.save();
+        res.json({
+            message: 'User has successfully joined the contest.',
+            contest,
+        });
+    } catch (err) {
+        console.error('Error joining contest:', err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
+    }
+});
+
+
+app.post("/school-question",authhentication, async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "Data is not available" });
+        }
+   
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+
+        if (!randomQuestion) {
+            return res.status(404).send({ message: "Unable to fetch a question" });
+        }
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+
+
 
 
 
 app.listen(PORT, () => {
     console.log("Server is running on port 5000");
-});
+})
