@@ -1576,21 +1576,13 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 app.post("/practice_Contest", authhentication, async (req, res) => {
     try {
         const { combineId, fullname } = req.body;
-
-        // Log received request body for debugging
         console.log("Request body:", req.body);
-
-        // Creating new contest
         const newContest = new practiceContest({
             combineId: combineId,
             fullname: fullname,
             createdAt: new Date(),
         });
-
-        // Saving the new contest
         await newContest.save();
-
-        // If saved successfully
         return res.status(201).json({
             message: "Contest created successfully",
             contest: newContest
