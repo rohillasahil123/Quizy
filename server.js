@@ -1575,21 +1575,38 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 // practice  Contest
 app.post("/practice_Contest", authhentication, async (req, res) => {
     try {
-        const { combineId, fullName } = req.body;
+        const { combineId, fullname } = req.body;
+
+        // Log received request body for debugging
+        console.log("Request body:", req.body);
+
+        // Creating new contest
         const newContest = new practiceContest({
             combineId: combineId,
-            fullName: fullName,
+            fullname: fullname,
             createdAt: new Date(),
         });
+
+        // Saving the new contest
         await newContest.save();
+
+        // If saved successfully
         return res.status(201).json({
             message: "Contest created successfully",
             contest: newContest
         });
+
     } catch (error) {
-        return res.status(500).json({ error: "An error occurred while creating the contest" });
+        // Log the error for better debugging
+        console.error("Error while creating contest:", error);
+
+        return res.status(500).json({
+            error: "An error occurred while creating the contest",
+            details: error.message // Add error details for debugging
+        });
     }
 });
+
 
 app.post("/practice_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -1614,7 +1631,7 @@ app.post("/practice_question", authhentication, async (req, res) => {
     }
 });
 
-app.post("/practice_answer", authhentication, async (req, res) => {
+app.post("/practice_answer",authhentication, async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await gkQuestion.findById(gkquestionId);
