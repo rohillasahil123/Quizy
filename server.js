@@ -553,7 +553,7 @@ app.get("/get/score", authhentication, async (req, res) => {
         if (!combineDetail) {
             return res.status(404).json({ error: "Combine details not found" });
         }
-        const contestData = await contest.findById(contestId);
+        const contestData = await contestdetails.findById(contestId);
         if (!contestData) {
             return res.status(404).json({ error: "Contest not found" });
         }
@@ -1573,7 +1573,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 // practice  Contest
-app.post("/practice_Contest", authhentication, async (req, res) => {
+app.post("/practice_Contest", async (req, res) => {
     try {
         const { combineId, fullname } = req.body;
         console.log("Request body:", req.body);
@@ -1600,7 +1600,7 @@ app.post("/practice_Contest", authhentication, async (req, res) => {
 });
 
 
-app.post("/practice_question", authhentication, async (req, res) => {
+app.post("/practice_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1623,7 +1623,7 @@ app.post("/practice_question", authhentication, async (req, res) => {
     }
 });
 
-app.post("/practice_answer",authhentication, async (req, res) => {
+app.post("/practice_answer", async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await gkQuestion.findById(gkquestionId);
