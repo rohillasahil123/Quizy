@@ -7,6 +7,7 @@ const studentContestQuestion = require("../Model/student_Question.js")
 const competitiveContest = require("../Model/competitive.js")
 const collageContest = require("../Model/collage.js")
 const SchoolContest = require ("../Model/School.js")
+const weeklycontest = require("../Model/Weekly.js")
 
 async function getUserById(combineId) {
   return await CombineDetails.findById(combineId);
@@ -85,7 +86,6 @@ async function  createStudentMultipleContests() {
           contests.push(newContest);
       }
   }
-
   return contests;
 }
 
@@ -171,10 +171,38 @@ async function createMultipleCollageContests(contestCount) {
 
 
 
+async function    createWeeklyContests() {
+  const contestAmounts = [19];  
+  const contests = [];
+  for (let amount of contestAmounts) {
+      const existingContest = await weeklycontest.findOne({ amount:amount, isFull: false });
+      if (existingContest) {
+          if (existingContest.combineId.length >= existingContest.maxParticipants) {
+              existingContest.isFull = true;
+              await existingContest.save();
+              const newContest = await createNewContestWeek(amount);
+              contests.push(newContest);
+          } else {
+              contests.push(existingContest);
+          }
+      } else {
+          const newContest = await createNewContestWeek(amount);
+          contests.push(newContest);
+      }
+  }
+  return contests;
+}
 
-
-
-
+async function createNewContestWeek(amount) {
+  const newContest = new weeklycontest({
+      combineId: [],  
+      maxParticipants: 100000000,
+      amount:amount,  
+      winningAmount: amount * 2, 
+      isFull: false  
+  });
+  return await newContest.save(); 
+}
 
 
 
@@ -216,5 +244,6 @@ module.exports = {
   createNewContest,
   createNewContestSchool,
   createNewcompetitiveContest,
-  createSchoolMultipleContests
+  createSchoolMultipleContests,
+  createWeeklyContests
 };

@@ -14,6 +14,7 @@ const { getUserById,
     createMultipleContestss,
     createNewContestSchool,
     createNewcompetitiveContest,
+    createWeeklyContests
 } = require("./Helper/helperFunction.js");
 const authhentication = require("./authentication/authentication.js");
 const jwt = require("jsonwebtoken");
@@ -1571,6 +1572,23 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 
+// Weekly Api 
+
+app.post("/Weekly-contest", authhentication, async (req, res) => {
+    const initialContestCount = 1;
+    try {
+        const contests = await  createWeeklyContests(initialContestCount);
+        console.log("1")
+        res.json({
+            message: "Weekly contests created successfully",
+            contests,
+        });
+        console.log("1")
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 // practice  Contest
 app.post("/practice_Contest", authhentication, async (req, res) => {
