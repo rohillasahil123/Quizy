@@ -35,6 +35,8 @@ const practiceContest = require("./Model/Practice_Contest.js")
 const studentContestQuestion = require("./Model/student_Question.js")
 const competitiveContest = require("./Model/competitive.js")
 const SchoolContest = require ("./Model/School.js")
+const weeklycontest = require("./Model/Weekly.js")
+
 
 const app = express();
 
@@ -1589,6 +1591,51 @@ app.post("/Weekly-contest", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+app.get("/Weekly_contest_show",  async (req, res) => { 
+    const { id } = req.query;
+    try {
+        let contests;
+        if (id) {
+            contests = await weeklycontest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+        } else {
+            contests = await weeklycontest.find();
+        }
+        console.log(contests, "57t5 ")
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 1000000;
+            return {
+                contestId: contest._id,
+                gameAmount: contest.amount,
+                winningAmount:contest.winningAmount,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+
+
+
+
+
 
 // practice  Contest
 app.post("/practice_Contest", authhentication, async (req, res) => {
