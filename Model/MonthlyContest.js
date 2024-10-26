@@ -15,8 +15,13 @@ const participantSchema = new mongoose.Schema({
   },
 });
 
-const monthlyContestSchema = new mongoose.Schema({
-  combineId: [participantSchema]
+
+const contestSchema = new mongoose.Schema({
+  combineId: [participantSchema],  
+  maxParticipants: { type: Number, required: true }, 
+  amount: { type: Number, required: true }, 
+  winningAmount: { type: Number, required: true } ,
+  isFull: { type: Boolean, default: false }
 });
 
-module.exports = mongoose.model('monthlyContest', monthlyContestSchema);
+module.exports = mongoose.model('monthlyContest', contestSchema);

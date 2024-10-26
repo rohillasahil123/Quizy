@@ -1276,8 +1276,6 @@ app.post("/game/result", authhentication, async (req, res) => {
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-
-        // Find the user objects within the contest's combineId array
         const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
         if (!user1) {
             return res.status(404).json({ message: "User 1 not found in contest" });
@@ -1301,8 +1299,6 @@ app.post("/game/result", authhentication, async (req, res) => {
                 user2,
             });
         }
-
-        // Send response
         return res.status(200).json({
             message: "Game result determined",
             winner: {
@@ -1325,14 +1321,11 @@ app.post("/game/result", authhentication, async (req, res) => {
 // game Leaderboard user 4
 app.post("/many/game/result", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, combineId3, combineId4 } = req.body;
-
     try {
         const contest = await contestdetails.findById(contestId);
         if (!contest) {
             return res.status(404).json({ message: "Contest not found" });
         }
-
-        // Find the user objects within the contest's combineId array
         const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
         if (!user1) {
             return res.status(404).json({ message: "User 1 not found in contest" });
@@ -1352,15 +1345,9 @@ app.post("/many/game/result", authhentication, async (req, res) => {
         if (!user4) {
             return res.status(404).json({ message: "User 4 not found in contest" });
         }
-
-        // Create an array of users and sort by score
         const users = [user1, user2, user3, user4];
         users.sort((a, b) => b.score - a.score);
-
-        // Assign positions
         const [winner, second, third, loser] = users;
-
-        // Send response
         return res.status(200).json({
             message: "Game result determined",
             winner: {
@@ -1396,54 +1383,6 @@ app.get("/leaderboard", authhentication, async (req, res) => {
     try {
         const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(1000000000000000);
         res.json({ topUsers, RequestedBy: combineuser });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-//monthly Api Start 
-// Monthly Start  create 
-app.post("/monthly-contest", authhentication, async (req, res) => {
-    const initialContestCount = 1;
-    try {
-        const contests = await createMonthlyMultipleContests(initialContestCount);
-        res.json({
-            message: "monthly contests created successfully",
-            contests,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/monthly_join_contest", authhentication, async (req, res) => {
-    const { contestId, newcombineId, fullname } = req.body;
-    try {
-        if (!fullname) {
-            return res.status(400).json({ message: "Fullname is required" });
-        }
-
-        const contestmonth = await monthContest.findById(contestId);
-        if (!contestmonth) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contestmonth.combineId.length >= 100000) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-
-        const user = await getUserById(newcombineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        contestmonth.combineId.push({ id: newcombineId, fullname });
-        await contestmonth.save();
-
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
-        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -1593,7 +1532,7 @@ app.post("/Weekly-contest", authhentication, async (req, res) => {
 });
 
 
-app.get("/Weekly_contest_show",  async (req, res) => { 
+app.get("/Weekly_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -1633,7 +1572,95 @@ app.get("/Weekly_contest_show",  async (req, res) => {
 
 
 
+//monthly Api 
+app.post("/monthly-contest", authhentication, async (req, res) => {
+    const initialContestCount = 1;
+    try {
+        const contests = await createMonthlyMultipleContests(initialContestCount);
+        res.json({
+            message: "monthly contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
+
+app.post("/monthly_join_contest", authhentication, async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
+    try {
+        if (!fullname) {
+            return res.status(400).json({ message: "Fullname is required" });
+        }
+
+        const contestmonth = await monthContest.findById(contestId);
+        if (!contestmonth) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        if (contestmonth.combineId.length >= 100000) {
+            return res.status(400).json({ message: "Contest full" });
+        }
+
+        const user = await getUserById(newcombineId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        contestmonth.combineId.push({ id: newcombineId, fullname });
+        await contestmonth.save();
+
+        res.json({
+            message: `User ${fullname} joined contest and game`,
+            contestId,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/monthly_contest_show", authhentication,  async (req, res) => { 
+    const { id } = req.query;
+    try {
+        let contests;
+     
+        if (id) {
+            contests = await monthContest.findById(id);
+            if (!contests) {
+                return res.status(404).send({ message: "Contest not found" });
+            }
+            contests = [contests];
+     
+        } else {
+            contests = await monthContest.find();
+        }
+     
+        const contestsWithStatus = contests.map(contest => {
+            const isFull = contest.combineId.length >= 1000000;
+     
+            return {
+                contestId: contest._id,
+                gameAmount: contest.amount,
+                winningAmount:contest.winningAmount,
+                isFull,
+                players: contest.combineId.map(player => ({
+                    combineId: player.id,
+                    score: player.score,
+                    fullname: player.fullname
+                })),
+            };
+        });
+        res.send({
+            contests: contestsWithStatus,
+            message: "Contests retrieved successfully"
+        });
+        
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Internal server error");
+    }
+});
 
 
 

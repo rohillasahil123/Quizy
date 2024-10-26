@@ -101,18 +101,39 @@ async function createNewContestSchool(amount) {
 }
 
 // monthly database
-async function createMonthlyMultipleContests(contestCount) {
-  const contestmonth = [];
-  for (let i = 0; i < contestCount; i++) {
-    const newContestmonth = new monthContest({
-      combineId: [],
-      maxParticipants: 100000
-    });
-    contestmonth.push(await newContestmonth.save());
+
+async function createMonthlyMultipleContests() {
+  const contestAmounts = [19];  
+  const contests = [];
+  for (let amount of contestAmounts) {
+      const existingContest = await monthContest.findOne({ amount:amount, isFull: false });
+      if (existingContest) {
+          if (existingContest.combineId.length >= existingContest.maxParticipants) {
+              existingContest.isFull = true;
+              await existingContest.save();
+              const newContest = await createNewContestMonth(amount);
+              contests.push(newContest);
+          } else {
+              contests.push(existingContest);
+          }
+      } else {
+          const newContest = await createNewContestMonth(amount);
+          contests.push(newContest);
+      }
   }
-  return contestmonth;
+  return contests;
 }
 
+async function createNewContestMonth(amount) {
+  const newContest = new monthContest({
+      combineId: [],  
+      maxParticipants: 100000000,
+      amount:amount,  
+      winningAmount: amount * 2, 
+      isFull: false  
+  });
+  return await newContest.save(); 
+}
 // compatitive Exam
 async function createMultipleCompetitiveContests() {
   const contestAmounts = [5, 10, 25, 50, 100, 500];  
@@ -171,7 +192,7 @@ async function createMultipleCollageContests(contestCount) {
 
 
 
-async function    createWeeklyContests() {
+async function createWeeklyContests() {
   const contestAmounts = [19];  
   const contests = [];
   for (let amount of contestAmounts) {
