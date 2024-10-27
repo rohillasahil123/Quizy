@@ -1681,12 +1681,10 @@ app.post("/practice_Contest", authhentication, async (req, res) => {
         });
 
     } catch (error) {
-        // Log the error for better debugging
         console.error("Error while creating contest:", error);
-
         return res.status(500).json({
             error: "An error occurred while creating the contest",
-            details: error.message // Add error details for debugging
+            details: error.message 
         });
     }
 });
@@ -1737,7 +1735,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
             }
             if (contest.combineId.toString() === combineId.toString()) {
                 contest.Score = parseInt(contest.Score) + 1;
-                contestScore = contest.Score;
+                score = contest.Score;
                 await contest.save();
             } else {
                 return res.status(404).json({ message: "User not part of this contest" });
@@ -1750,10 +1748,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
             selectedOption,
             isCorrect,
             combineuser,
-            score: {
-                contestScore: contestScore
-            },
-
+            score,
             message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'} and the score has been updated.`,
         });
 
@@ -1762,15 +1757,6 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
-
-
-
-
-
-
 
 
 
