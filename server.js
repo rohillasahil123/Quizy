@@ -913,6 +913,34 @@ app.get("/1-12_one_contest", authhentication,   async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+
+app.get("/1-12_get/score", authhentication,  async (req, res) => {
+    const { contestId, combineId } = req.query;
+    try {
+        const combineDetail = await CombineDetails.findById(combineId);
+        if (!combineDetail) {
+            return res.status(404).json({ error: "Combine details not found" });
+        }
+        const contestData = await studentContestQuestion.findById(contestId);
+        if (!contestData) {
+            return res.status(404).json({ error: "Contest not found" });
+        }
+        const participant = contestData.combineId.find((participant) => participant.id.toString() === combineId);
+        if (!participant) {
+            return res.status(404).json({ error: "Participant not found in contest" });
+        }
+        res.status(200).json({
+            combineId: combineDetail._id,
+            contestId: contestData._id,
+            score: participant.score,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
 //  competitive Part 
 // Done
 app.post("/competitive_create_contest",  authhentication,  async (req, res) => {
@@ -1127,6 +1155,35 @@ app.get("/competitive_one_contest_show", authhentication, async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+app.get("/competitive_get/score",   async (req, res) => {
+    const { contestId, combineId } = req.query;
+    try {
+        const combineDetail = await CombineDetails.findById(combineId);
+        if (!combineDetail) {
+            return res.status(404).json({ error: "Combine details not found" });
+        }
+        const contestData = await competitiveContest.findById(contestId);
+        if (!contestData) {
+            return res.status(404).json({ error: "Contest not found" });
+        }
+        const participant = contestData.combineId.find((participant) => participant.id.toString() === combineId);
+        if (!participant) {
+            return res.status(404).json({ error: "Participant not found in contest" });
+        }
+        res.status(200).json({
+            combineId: combineDetail._id,
+            contestId: contestData._id,
+            score: participant.score,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+
+
 
 // new fix wallet id
 app.post("/system_compare", authhentication, async (req, res) => {
@@ -1735,7 +1792,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
             }
             if (contest.combineId.toString() === combineId.toString()) {
                 contest.Score = parseInt(contest.Score) + 1;
-                score = contest.Score;
+                contestScore = contest.Score;
                 await contest.save();
             } else {
                 return res.status(404).json({ message: "User not part of this contest" });
@@ -1748,7 +1805,10 @@ app.post("/practice_answer", authhentication, async (req, res) => {
             selectedOption,
             isCorrect,
             combineuser,
-            score,
+            score: {
+                contestScore: contestScore
+            },
+
             message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'} and the score has been updated.`,
         });
 
@@ -1757,6 +1817,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 
 
