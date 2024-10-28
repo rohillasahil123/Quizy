@@ -944,7 +944,7 @@ app.get("/1-12_get/score", authhentication,  async (req, res) => {
 
 
 
-app.post("/1-12_system_compare",  async (req, res) => {
+app.post("/1-12_system_compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2 } = req.body;
     const fixedWalletId = "66fcf223377b6df30f65389d";
     try {
@@ -1253,6 +1253,73 @@ app.get("/competitive_get/score", authhentication,  async (req, res) => {
     }
 });
 
+
+app.post("/competitive_system_compare", authhentication, async (req, res) => {
+    const { contestId, combineId1, combineId2 } = req.body;
+    const fixedWalletId = "66fcf223377b6df30f65389d";
+    try {
+        const contest = await competitiveContest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
+        if (!user1) {
+            return res.status(404).json({ message: "User 1 not found in contest" });
+        }
+        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
+        if (!user2) {
+            return res.status(404).json({ message: "User 2 not found in contest" });
+        }
+        const  winningAmount = contest. winningAmount 
+        let winner;
+        if (user1.score > user2.score) {
+            winner = user1;
+        } else if (user1.score < user2.score) {
+            winner = user2;
+        } else {
+            return res.status(200).json({ message: "It's a tie!", user1, user2 });
+        }
+        const winnerAmount = (winningAmount * 0.75);
+        const systemCutAmount = (winningAmount * 0.25);
+        if (winnerAmount > 0) {
+            const winnerWallet = await getWalletBycombineId(winner.id);
+            if (!winnerWallet) {
+                return res.status(404).json({ message: "Winner's wallet not found" });
+            }
+            winnerWallet.balance += parseInt(winnerAmount);
+            await updateWallet(winnerWallet);
+            await logTransaction(winner.id, winnerAmount, "credit");
+            let fixedWallet = await getWalletBycombineId(fixedWalletId);
+            if (!fixedWallet) {
+                fixedWallet = new Wallet({ id: fixedWalletId, balance: 0 });
+            }
+            fixedWallet.balance += parseInt(systemCutAmount);
+            await updateWallet(fixedWallet);
+            await logTransaction(fixedWalletId, systemCutAmount, "credit");
+            return res.status(200).json({
+                message: "Winner determined and wallets updated",
+                winner: {
+                    combineId: winner.id,
+                    name: winner.fullname,
+                    score: winner.score,
+                    winnerWallet: winnerWallet.balance,
+                    fixedWallet: fixedWallet.balance,
+                },
+            });
+        } else {
+            return res.status(200).json({
+                message: "Winner determined, but no amount to distribute",
+                winner: {
+                    combineId: winner.id,
+                    name: winner.fullname,
+                },
+            });
+        }
+    } catch (error) {
+        console.error("Error occurred:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
 
 
 
