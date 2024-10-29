@@ -646,7 +646,7 @@ app.get("/get/score", authhentication, async (req, res) => {
 });
 
 //Other Data Answer
-app.post("/other/answer",  async (req, res) => {
+app.post("/other/answer", authhentication,  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1600,7 +1600,7 @@ app.get("/getAmount", authhentication, async (req, res) => {
 
 // Yearly (Mega) Contest
  
-app.post("/mega-contest",  async (req, res) => {
+app.post("/mega-contest", authhentication,  async (req, res) => {
     const initialContestCount = 1;
     try {
         const contests = await createMegaMultipleContests(initialContestCount);
@@ -1615,7 +1615,7 @@ app.post("/mega-contest",  async (req, res) => {
 });
 
 
-app.post("/mega_join_contest",  async (req, res) => {
+app.post("/mega_join_contest", authhentication,  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1647,7 +1647,7 @@ app.post("/mega_join_contest",  async (req, res) => {
     }
 });
 
-app.get("/mega_contest_show",   async (req, res) => { 
+app.get("/mega_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
