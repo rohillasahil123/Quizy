@@ -1614,7 +1614,6 @@ app.post("/mega-contest", authhentication,  async (req, res) => {
     }
 });
 
-
 app.post("/mega_join_contest", authhentication,  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
@@ -1685,7 +1684,6 @@ app.get("/mega_contest_show", authhentication,  async (req, res) => {
     }
 });
 
-
 // Globli LeaderBoard
 app.post("/leaderboard/globle", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -1736,10 +1734,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 });
 
 
-
-
 // Weekly Api 
-
 app.post("/Weekly-contest", authhentication, async (req, res) => {
     const initialContestCount = 1;
     try {
@@ -1755,7 +1750,6 @@ app.post("/Weekly-contest", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
 
 app.post("/Weekly_join_contest",  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
@@ -1827,10 +1821,8 @@ app.get("/Weekly_contest_show", authhentication,  async (req, res) => {
     }
 });
 
-
-
 //monthly Api 
-app.post("/monthly-contest",  async (req, res) => {
+app.post("/monthly-contest", authhentication,  async (req, res) => {
     const initialContestCount = 1;
     try {
         const contests = await createMonthlyMultipleContests(initialContestCount);
@@ -1844,8 +1836,7 @@ app.post("/monthly-contest",  async (req, res) => {
     }
 });
 
-
-app.post("/monthly_join_contest",  async (req, res) => {
+app.post("/monthly_join_contest", authhentication,  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1945,7 +1936,6 @@ app.post("/practice_Contest", authhentication, async (req, res) => {
         });
     }
 });
-
 
 app.post("/practice_question", authhentication,  async (req, res) => {
     const { combineId } = req.body;
@@ -2142,6 +2132,47 @@ app.post("/school-question",authhentication, async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// test Api 
+
+
+app.get("/address" , async (req,res)=>{{
+    console.log("2")
+        res.json("api Start")
+        console.log("2")
+    }})
 
 
 
