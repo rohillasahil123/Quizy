@@ -110,12 +110,15 @@ async function createMonthlyMultipleContests() {
   const contests = [];
   for (let amount of contestAmounts) {
       const existingContest = await monthContest.findOne({ amount:amount, isFull: false });
+      console.log("1")
       if (existingContest) {
           if (existingContest.combineId.length >= existingContest.maxParticipants) {
               existingContest.isFull = true;
+              console.log("1")
               await existingContest.save();
               const newContest = await createNewContestMonth(amount);
               contests.push(newContest);
+              console.log("1")
           } else {
               contests.push(existingContest);
           }
@@ -123,6 +126,7 @@ async function createMonthlyMultipleContests() {
           const newContest = await createNewContestMonth(amount);
           contests.push(newContest);
       }
+      console.log("1")
   }
   return contests;
 }
@@ -195,42 +199,44 @@ async function createMultipleCollageContests(contestCount) {
 
 
 // week function 
-
 async function createWeeklyContests() {
-  const contestAmounts = [19];  
+  const playerFee = 19; 
   const contests = [];
-  for (let amount of contestAmounts) {
-      const existingContest = await weeklycontest.findOne({ amount:amount, isFull: false });
-      if (existingContest) {
-          if (existingContest.combineId.length >= existingContest.maxParticipants) {
-              existingContest.isFull = true;
-              await existingContest.save();
-              const newContest = await createNewContestWeek(amount);
-              contests.push(newContest);
-          } else {
-              contests.push(existingContest);
-          }
-      } else {
-          const newContest = await createNewContestWeek(amount);
-          contests.push(newContest);
-      }
+  let existingContest = await weeklycontest.findOne({ amount: playerFee, isFull: false });
+  if (existingContest) {
+    existingContest.winningAmount = existingContest.combineId.length * playerFee;
+    if (existingContest.combineId.length >= existingContest.maxParticipants) {
+      existingContest.isFull = true;
+      await existingContest.save();
+      const newContest = await createNewContestWeek(playerFee);
+      contests.push(newContest);
+    } else {
+      await existingContest.save();
+      contests.push(existingContest);
+    }
+  } else {
+    
+    const newContest = await createNewContestWeek(playerFee);
+    contests.push(newContest);
   }
+
   return contests;
 }
 
-async function createNewContestWeek(amount) {
+
+const playerFee = 19; 
+async function createNewContestWeek() {
   const newContest = new weeklycontest({
+      amount: playerFee,
+      winningAmount: 0,  
       combineId: [],  
-      maxParticipants: 100000000,
-      amount:amount,  
-      winningAmount: amount * 2, 
-      isFull: false  
+      maxParticipants: 100000,
+      isFull: false,
   });
-  return await newContest.save(); 
+
+  await newContest.save();
+  return newContest;
 }
-
-
-
 
   // Mega Function 
 

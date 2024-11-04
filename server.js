@@ -1138,7 +1138,7 @@ app.post("/competitive_question", authhentication, async (req, res) => {
     }
 });
 
-// Verify Answer Apie
+// Verify Answer Api
 app.post("/competitive_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
@@ -1347,12 +1347,6 @@ app.post("/competitive_system_compare", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
-
-
-
-
-
 
 
 // Compare-Game-4 user
@@ -1735,34 +1729,33 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 // Weekly Api 
-app.post("/Weekly-contest", authhentication, async (req, res) => {
+app.post("/weekly-contest",authhentication,  async (req, res) => {
     const initialContestCount = 1;
+    console.log("6")
     try {
-        const contests = await  createWeeklyContests(initialContestCount);
-        console.log("1")
+        const contests = await createWeeklyContests(initialContestCount);
         res.json({
-            message: "Weekly contests created successfully",
+            message: "monthly contests created successfully",
             contests,
         });
-        console.log("1")
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
     }
 });
 
-app.post("/Weekly_join_contest",  async (req, res) => {
+app.post("/weekly_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
             return res.status(400).json({ message: "Fullname is required" });
         }
 
-        const contestWeekly = await weeklycontest.findById(contestId);
-        if (!contestWeekly) {
+        const contestweek = await weeklycontest.findById(contestId);
+        if (!contestweek) {
             return res.status(404).json({ message: "Contest not found" });
         }
-        if (contestWeekly.combineId.length >= 100000) { 
+        if (contestweek.combineId.length >= 100000) {
             return res.status(400).json({ message: "Contest full" });
         }
 
@@ -1770,12 +1763,87 @@ app.post("/Weekly_join_contest",  async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        contestWeekly.combineId.push({ id: newcombineId, fullname });
-        await contestWeekly.save();
+        contestweek.combineId.push({ id: newcombineId, fullname });
+        await contestweek.save();
 
         res.json({
             message: `User ${fullname} joined contest and game`,
             contestId,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/weekly_question", authhentication,  async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "user is not available" });
+        }
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+app.post("/weekly_answer", authhentication, async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+    try {
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+        const isCorrect = question.correctAnswer === selectedOption;
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        let contestScore = 0;
+        if (isCorrect) {
+            combinedata.score += 1;
+            await combinedata.save();
+            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            if (!leaderboardEntry) {
+                leaderboardEntry = new leaderboarddetail({
+                    combineId,
+                    combineuser,
+                    score: 0,
+                });
+            }
+            leaderboardEntry.score += 1;
+            await leaderboardEntry.save();
+            let contest = await  weeklycontest.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            if (userContest) {
+                userContest.score += 1;
+                contestScore = userContest.score;
+                await contest.save();
+            }
+        }
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
         });
     } catch (err) {
         console.error(err);
@@ -1824,6 +1892,7 @@ app.get("/Weekly_contest_show", authhentication,  async (req, res) => {
 //monthly Api 
 app.post("/monthly-contest", authhentication,  async (req, res) => {
     const initialContestCount = 1;
+    console.log("6")
     try {
         const contests = await createMonthlyMultipleContests(initialContestCount);
         res.json({
@@ -1913,7 +1982,7 @@ app.get("/monthly_contest_show", authhentication,  async (req, res) => {
 
 
 // practice  Contest
-app.post("/practice_Contest", authhentication, async (req, res) => {
+app.post("/practice_Contest", async (req, res) => {
     try {
         const { combineId, fullname } = req.body;
         console.log("Request body:", req.body);
