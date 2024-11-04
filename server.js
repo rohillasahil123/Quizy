@@ -1750,28 +1750,35 @@ app.post("/weekly_join_contest", authhentication, async (req, res) => {
         if (!fullname) {
             return res.status(400).json({ message: "Fullname is required" });
         }
+        console.log("Checking contest");
 
         const contestweek = await weeklycontest.findById(contestId);
         if (!contestweek) {
             return res.status(404).json({ message: "Contest not found" });
         }
+        console.log("Contest found");
+
         if (contestweek.combineId.length >= 100000) {
             return res.status(400).json({ message: "Contest full" });
         }
+        console.log("Space available in contest");
 
         const user = await getUserById(newcombineId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
+        console.log("User found");
+
         contestweek.combineId.push({ id: newcombineId, fullname });
         await contestweek.save();
+        console.log("User added to contest");
 
         res.json({
             message: `User ${fullname} joined contest and game`,
             contestId,
         });
     } catch (err) {
-        console.error(err);
+        console.error("Error occurred:", err);
         res.status(500).json({ message: "Server Error" });
     }
 });
@@ -1799,7 +1806,7 @@ app.post("/weekly_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/weekly_answer", authhentication, async (req, res) => {
+app.post("/weekly_answer",  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
