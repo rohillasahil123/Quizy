@@ -1968,7 +1968,7 @@ app.post("/monthly_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/monthly_answer", authhentication, async (req, res) => {
+app.post("/monthly_answer", authhentication, async (req, res) => {aa
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -2019,7 +2019,6 @@ app.post("/monthly_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
 
 app.get("/monthly_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
