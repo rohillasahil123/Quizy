@@ -2216,7 +2216,7 @@ app.post("/addquestionpractice", async (req, res) => {
         });
         await newQuestion.save();
 
-        res.status(201).json({
+        res.status(200).json({
             message: "Question added successfully",
             question: newQuestion
         });
