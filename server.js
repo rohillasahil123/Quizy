@@ -38,6 +38,7 @@ const competitiveContest = require("./Model/competitive.js")
 const SchoolContest = require ("./Model/School.js")
 const weeklycontest = require("./Model/Weekly.js")
 const Megacontest = require ("./Model/Mega.js")
+const practiceQuestion = require ("./Model/PracticeQuestion.js")
 
 
 const app = express();
@@ -1729,7 +1730,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 // Weekly Api 
-app.post("/weekly-contest",authhentication,  async (req, res) => {
+app.post("/weekly-contest",  async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -1744,7 +1745,7 @@ app.post("/weekly-contest",authhentication,  async (req, res) => {
     }
 });
 
-app.post("/weekly_join_contest", authhentication, async (req, res) => {
+app.post("/weekly_join_contest", async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1783,7 +1784,7 @@ app.post("/weekly_join_contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/weekly_question", authhentication,  async (req, res) => {
+app.post("/weekly_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1806,7 +1807,7 @@ app.post("/weekly_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/weekly_answer", authhentication, async (req, res) => {
+app.post("/weekly_answer",  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1858,7 +1859,7 @@ app.post("/weekly_answer", authhentication, async (req, res) => {
     }
 });
 
-app.get("/Weekly_contest_show", authhentication,  async (req, res) => { 
+app.get("/Weekly_contest_show",   async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -1897,7 +1898,7 @@ app.get("/Weekly_contest_show", authhentication,  async (req, res) => {
 });
 
 //monthly Api 
-app.post("/monthly-contest", authhentication,  async (req, res) => {
+app.post("/monthly-contest",  async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -1912,7 +1913,7 @@ app.post("/monthly-contest", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/monthly_join_contest", authhentication,  async (req, res) => {
+app.post("/monthly_join_contest",  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1944,8 +1945,7 @@ app.post("/monthly_join_contest", authhentication,  async (req, res) => {
     }
 });
 
-
-app.post("/monthly_question", authhentication,  async (req, res) => {
+app.post("/monthly_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1968,7 +1968,7 @@ app.post("/monthly_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/monthly_answer", authhentication, async (req, res) => {aa
+app.post("/monthly_answer",  async (req, res) => {aa
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -2020,7 +2020,7 @@ app.post("/monthly_answer", authhentication, async (req, res) => {aa
     }
 });
 
-app.get("/monthly_contest_show", authhentication,  async (req, res) => { 
+app.get("/monthly_contest_show", async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -2183,6 +2183,33 @@ app.post("/addquestiongk", async (req, res) => {
             return res.status(400).json({ message: "Options must be an array with at least two elements" });
         }
         const newQuestion = new gkQuestion({
+            question,
+            correctAnswer,
+            options
+        });
+        await newQuestion.save();
+
+        res.status(201).json({
+            message: "Question added successfully",
+            question: newQuestion
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
+app.post("/addquestionpractice", async (req, res) => {
+    try {
+        const { question, correctAnswer, options } = req.body;
+        if (!question || !correctAnswer || !options) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        if (!Array.isArray(options) || options.length < 2) {
+            return res.status(400).json({ message: "Options must be an array with at least two elements" });
+        }
+        const newQuestion = new practiceQuestion({
             question,
             correctAnswer,
             options
