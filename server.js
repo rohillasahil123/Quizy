@@ -2318,7 +2318,32 @@ app.post("/school-question",authhentication, async (req, res) => {
 
 
 
-
+app.post("/addquestion", async (req, res) => {
+    try {
+      const { collectionName, question, correctAnswer, options } = req.body;
+      if (!collectionName || !question || !correctAnswer || !options || !Array.isArray(options) || options.length < 2) {
+        return res.status(400).json({ message: "All fields are required, and options must have at least two items." });
+      }
+      const QuestionModel = mongoose.model(collectionName, questionSchema, collectionName);
+      const newQuestion = new QuestionModel({
+        question,
+        correctAnswer,
+        options,
+      });
+      await newQuestion.save();
+      const documentCount = await QuestionModel.countDocuments();
+  
+      res.status(201).json({
+        message: `Question added to the ${collectionName} collection successfully.`,
+        question: newQuestion,
+        totalDocuments: documentCount,
+      });
+    } catch (error) {
+      console.error("Error adding question:", error);
+      res.status(500).json({ message: "Server Error" });
+    }
+  });
+  
 
 
 
