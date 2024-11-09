@@ -1968,7 +1968,7 @@ app.post("/monthly_question",  async (req, res) => {
     }
 });
 
-app.post("/monthly_answer",  async (req, res) => {aa
+app.post("/monthly_answer",  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -2061,8 +2061,6 @@ app.get("/monthly_contest_show", async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
-
-
 
 // practice  Contest
 app.post("/practice_Contest", async (req, res) => {
@@ -2159,16 +2157,6 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
-
-
-
-
-
-
-
-
 
 
 // Site Api
