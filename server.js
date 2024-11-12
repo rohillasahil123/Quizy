@@ -30,6 +30,7 @@ const CombineDetails = require("./Model/OtherData.js");
 const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const Monthlyleaderboard = require ("./Model/MonthlyLeadboard")
+const Megaleaderboard = require ("./Model/MegaLeaderBoard.js")
 const gkQuestion = require("./Model/OtherQuestion.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 const monthContest = require("./Model/MonthlyContest.js")
@@ -1631,7 +1632,82 @@ app.post("/mega_join_contest", authhentication,  async (req, res) => {
     }
 });
 
-app.get("/mega_contest_show", authhentication,  async (req, res) => { 
+app.post("/mega_question",  async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "user is not available" });
+        }
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+app.post("/mega_answer",  async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+    try {
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+        const isCorrect = question.correctAnswer === selectedOption;
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        let contestScore = 0;
+        if (isCorrect) {
+            combinedata.score += 1;
+            await combinedata.save();
+            let leaderboardEntry = await Megaleaderboard.findOne({ combineId });
+            if (!leaderboardEntry) {
+                leaderboardEntry = new Megaleaderboard({
+                    combineId,
+                    combineuser,
+                    score: 0,
+                });
+            }
+            leaderboardEntry.score += 1;
+            await leaderboardEntry.save();
+            let contest = await  Megacontest.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            if (userContest) {
+                userContest.score += 1;
+                contestScore = userContest.score;
+                await contest.save();
+            }
+        }
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/mega_contest_show",   async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -1668,6 +1744,20 @@ app.get("/mega_contest_show", authhentication,  async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+app.get("/Mega_leaderboard",  async (req, res) => {
+    const { combineuser } = req.query;
+    try {
+        const topUsers = await Megaleaderboard.find().sort({ score: -1 }).limit(100000);
+        res.json({ topUsers, RequestedBy: combineuser });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+
+
 
 // Globli LeaderBoard
 app.post("/leaderboard/globle", authhentication, async (req, res) => {
