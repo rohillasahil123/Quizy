@@ -2056,35 +2056,16 @@ app.get("/monthly_contest_show", authhentication ,  async (req, res) => {
     }
 });
 
-app.get('/monthly-leaderboard',authhentication, async (req, res) => {
+app.get("/Monthly_leaderboard", authhentication, async (req, res) => {
+    const { combineuser } = req.query;
     try {
-      const contestId = req.query.id;
-  
-      const contest = await monthContest.aggregate([
-        { $match: { _id: mongoose.Types.ObjectId(contestId) } },
-        { $unwind: "$participants" },
-        { $sort: { "participants.score": -1 } },
-        { $limit: 8 },
-        {
-          $group: {
-            _id: "$_id",
-            participants: { $push: "$participants" },
-          },
-        },
-      ]);
-  
-      if (!contest || contest.length === 0) {
-        return res.status(404).json({ message: 'Contest not found' });
-      }
-  
-      res.status(200).json({
-        leaderboard: contest[0].participants,
-      });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+        const topUsers = await Monthlyleaderboard.find().sort({ score: -1 }).limit(100000);
+        res.json({ topUsers, RequestedBy: combineuser });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
     }
-  });
-  
+});
 
 // practice  Contest
 app.post("/practice_Contest", async (req, res) => {
