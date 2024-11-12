@@ -29,6 +29,7 @@ const Question = require("./Model/Question.js");
 const CombineDetails = require("./Model/OtherData.js");
 const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
+const Monthlyleaderboard = require ("./Model/MonthlyLeadboard")
 const gkQuestion = require("./Model/OtherQuestion.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 const monthContest = require("./Model/MonthlyContest.js")
@@ -1417,8 +1418,7 @@ app.post("/many/game/compare", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-// Game Compare Two or Four end
-// leaderboard start 
+
 
 // game Leaderboard user-2
 app.post("/game/result", authhentication, async (req, res) => {
@@ -1542,17 +1542,7 @@ app.get("/leaderboard", authhentication, async (req, res) => {
     }
 });
 
-// Monthly leaderboard
-app.get("/monthly-leaderboard", authhentication, async (req, res) => {
-    const { combineuser } = req.query;
-    try {
-        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(8);
-        res.json({ topUsers, RequestedBy: combineuser });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
+
 
 // Add wallet amount
 app.post("/wallet/add", authhentication, async (req, res) => {
@@ -1897,8 +1887,9 @@ app.get("/Weekly_contest_show",   async (req, res) => {
     }
 });
 
+
 //monthly Api 
-app.post("/monthly-contest",  async (req, res) => {
+app.post("/monthly-contest", authhentication ,  async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -1913,7 +1904,7 @@ app.post("/monthly-contest",  async (req, res) => {
     }
 });
 
-app.post("/monthly_join_contest",  async (req, res) => {
+app.post("/monthly_join_contest", authhentication ,  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1932,7 +1923,7 @@ app.post("/monthly_join_contest",  async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        contestmonth.combineId.push({ id: newcombineId, fullname });
+        contestmonth.combineId.push({ id: newcombineId, fullname : fullname });
         await contestmonth.save();
 
         res.json({
@@ -1945,7 +1936,7 @@ app.post("/monthly_join_contest",  async (req, res) => {
     }
 });
 
-app.post("/monthly_question",  async (req, res) => {
+app.post("/monthly_question", authhentication ,  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1967,10 +1958,9 @@ app.post("/monthly_question",  async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
-app.post("/monthly_answer",  async (req, res) => {
+app.post("/monthly_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-    try {
+    try { 
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
@@ -1984,21 +1974,24 @@ app.post("/monthly_answer",  async (req, res) => {
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            let leaderboardEntry = await Monthlyleaderboard.findOne({ combineId: combineId });
             if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
+                leaderboardEntry = new Monthlyleaderboard({
                     combineId,
                     combineuser,
                     score: 0,
+                    Wallet: 0
                 });
             }
             leaderboardEntry.score += 1;
+            console.log("hello")
+            console.log(leaderboardEntry)
             await leaderboardEntry.save();
-            let contest = await  monthContest.findById(contestId);
+            const contest = await monthContest.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
-            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+            const userContest = contest.combineId.find(user => user.id.toString() === combineId.toString());
             if (userContest) {
                 userContest.score += 1;
                 contestScore = userContest.score;
@@ -2015,12 +2008,13 @@ app.post("/monthly_answer",  async (req, res) => {
             score: contestScore,
         });
     } catch (err) {
-        console.error(err);
+        console.error("Server error:", err);
         res.status(500).json({ message: "Server Error" });
     }
 });
 
-app.get("/monthly_contest_show", async (req, res) => { 
+
+app.get("/monthly_contest_show", authhentication ,  async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -2061,6 +2055,36 @@ app.get("/monthly_contest_show", async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+app.get('/monthly-leaderboard',authhentication, async (req, res) => {
+    try {
+      const contestId = req.query.id;
+  
+      const contest = await monthContest.aggregate([
+        { $match: { _id: mongoose.Types.ObjectId(contestId) } },
+        { $unwind: "$participants" },
+        { $sort: { "participants.score": -1 } },
+        { $limit: 8 },
+        {
+          $group: {
+            _id: "$_id",
+            participants: { $push: "$participants" },
+          },
+        },
+      ]);
+  
+      if (!contest || contest.length === 0) {
+        return res.status(404).json({ message: 'Contest not found' });
+      }
+  
+      res.status(200).json({
+        leaderboard: contest[0].participants,
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
+  
 
 // practice  Contest
 app.post("/practice_Contest", async (req, res) => {
@@ -2298,14 +2322,6 @@ app.post("/school-question",authhentication, async (req, res) => {
 });
 
 
-
-
-
-
-
-
-
-
 app.post("/addquestion", async (req, res) => {
     try {
       const { collectionName, question, correctAnswer, options } = req.body;
@@ -2332,30 +2348,6 @@ app.post("/addquestion", async (req, res) => {
     }
   });
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // test Api 
 
