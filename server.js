@@ -41,6 +41,7 @@ const SchoolContest = require ("./Model/School.js")
 const weeklycontest = require("./Model/Weekly.js")
 const Megacontest = require ("./Model/Mega.js")
 const practiceQuestion = require ("./Model/PracticeQuestion.js")
+const practiceAnswer = require('./Model/PracticeAnswer.js');
 
 
 const app = express();
@@ -2208,15 +2209,17 @@ app.post("/practice_question", authhentication,  async (req, res) => {
 app.post("/practice_answer", authhentication, async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-        const question = await gkQuestion.findById(gkquestionId);
+        const question = await practiceQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
         const isCorrect = question.correctAnswer === selectedOption;
+
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
+
         let contestScore = 0;
         if (isCorrect) {
             combinedata.score += 1;
@@ -2226,13 +2229,40 @@ app.post("/practice_answer", authhentication, async (req, res) => {
                 return res.status(404).json({ message: "Contest not found" });
             }
             if (contest.combineId.toString() === combineId.toString()) {
-                contest.Score = parseInt(contest.Score) + 1;
+                contest.Score += 1;
                 contestScore = contest.Score;
                 await contest.save();
             } else {
                 return res.status(404).json({ message: "User not part of this contest" });
             }
         }
+
+        // Save the user's answer to the database
+        const answer = new practiceAnswer({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption
+        });
+
+        await answer.save();
+
+        // Track the total correct and incorrect answers across all users for the question
+        const userAnswers = await practiceAnswer.find({ gkquestionId });
+        let totalCorrectAnswers = 0;
+        let totalIncorrectAnswers = 0;
+
+        userAnswers.forEach(answer => {
+            if (answer.selectedOption === question.correctAnswer) {
+                totalCorrectAnswers++;
+            } else {
+                totalIncorrectAnswers++;
+            }
+        });
+
+        const performanceMessage = contestScore > 5 ? "Good" : "Bad";
+
+        // Send response back
         res.json({
             combineId,
             contestId,
@@ -2241,10 +2271,13 @@ app.post("/practice_answer", authhentication, async (req, res) => {
             isCorrect,
             combineuser,
             score: {
-                contestScore: contestScore
+                contestScore,
             },
-
-            message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'} and the score has been updated.`,
+            questionStats: {
+                totalCorrectAnswers,
+                totalIncorrectAnswers
+            },
+            message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'}. Performance: ${performanceMessage}.`,
         });
 
     } catch (err) {
@@ -2252,6 +2285,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 
 // Site Api
