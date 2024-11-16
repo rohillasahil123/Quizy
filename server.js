@@ -1632,7 +1632,7 @@ app.post("/mega_join_contest", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/mega_question",  async (req, res) => {
+app.post("/mega_question", authhentication,  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1655,7 +1655,7 @@ app.post("/mega_question",  async (req, res) => {
     }
 });
 
-app.post("/mega_answer",  async (req, res) => {
+app.post("/mega_answer", authhentication,  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1707,7 +1707,7 @@ app.post("/mega_answer",  async (req, res) => {
     }
 });
 
-app.get("/mega_contest_show",   async (req, res) => { 
+app.get("/mega_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -1745,7 +1745,7 @@ app.get("/mega_contest_show",   async (req, res) => {
     }
 });
 
-app.get("/Mega_leaderboard",  async (req, res) => {
+app.get("/Mega_leaderboard",authhentication,  async (req, res) => {
     const { combineuser } = req.query;
     try {
         const topUsers = await Megaleaderboard.find().sort({ score: -1 }).limit(100000);
@@ -2265,6 +2265,10 @@ app.post("/addquestiongk", async (req, res) => {
         if (!Array.isArray(options) || options.length < 2) {
             return res.status(400).json({ message: "Options must be an array with at least two elements" });
         }
+        const existingQuestion = await gkQuestion.findOne({ question });
+        if (existingQuestion) {
+            return res.status(400).json({ message: "Question already exists" });
+        }
         const newQuestion = new gkQuestion({
             question,
             correctAnswer,
@@ -2291,6 +2295,10 @@ app.post("/addquestionpractice", async (req, res) => {
         }
         if (!Array.isArray(options) || options.length < 2) {
             return res.status(400).json({ message: "Options must be an array with at least two elements" });
+        }
+        const existingQuestion = await practiceQuestion.findOne({ question });
+        if (existingQuestion) {
+            return res.status(400).json({ message: "Question already exists" });
         }
         const newQuestion = new practiceQuestion({
             question,
