@@ -1758,8 +1758,6 @@ app.get("/Mega_leaderboard",authhentication,  async (req, res) => {
 });
 
 
-
-
 // Globli LeaderBoard
 app.post("/leaderboard/globle", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -2183,7 +2181,7 @@ app.post("/practice_Contest", async (req, res) => {
     }
 });
 
-app.post("/practice_question", authhentication,  async (req, res) => {
+app.post("/practice_question",   async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -2206,7 +2204,7 @@ app.post("/practice_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/practice_answer", authhentication, async (req, res) => {
+app.post("/practice_answer",  async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await practiceQuestion.findById(gkquestionId);
@@ -2219,7 +2217,6 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
-
         let contestScore = 0;
         if (isCorrect) {
             combinedata.score += 1;
@@ -2236,22 +2233,16 @@ app.post("/practice_answer", authhentication, async (req, res) => {
                 return res.status(404).json({ message: "User not part of this contest" });
             }
         }
-
-        // Save the user's answer to the database
         const answer = new practiceAnswer({
             combineId,
             contestId,
             gkquestionId,
             selectedOption
         });
-
         await answer.save();
-
-        // Track the total correct and incorrect answers across all users for the question
         const userAnswers = await practiceAnswer.find({ gkquestionId });
         let totalCorrectAnswers = 0;
         let totalIncorrectAnswers = 0;
-
         userAnswers.forEach(answer => {
             if (answer.selectedOption === question.correctAnswer) {
                 totalCorrectAnswers++;
@@ -2259,10 +2250,7 @@ app.post("/practice_answer", authhentication, async (req, res) => {
                 totalIncorrectAnswers++;
             }
         });
-
         const performanceMessage = contestScore > 5 ? "Good" : "Bad";
-
-        // Send response back
         res.json({
             combineId,
             contestId,
@@ -2285,6 +2273,37 @@ app.post("/practice_answer", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+app.get("/get_user_score", async (req, res) => {
+    const { combineId, contestId } = req.query;
+    try {
+        if (!combineId || !contestId) {
+            return res.status(400).json({ error: "Missing combineId or contestId" });
+        }
+        const contestData = await practiceContest.findOne({
+            _id: contestId,
+            combineId: combineId,
+        });
+        if (!contestData) {
+            return res.status(404).json({ error: "Participant not found in contest" });
+        }
+        const performance = contestData.Score < 5 
+            ? "Bad" 
+            : contestData.Score < 10 
+            ? "Average" 
+            : "Good";
+        res.status(200).json({
+            score: contestData.Score,
+            fullname: contestData.fullname,
+            performance: performance,
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
 
 
 
