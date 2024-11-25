@@ -2157,7 +2157,7 @@ app.get("/Monthly_leaderboard", authhentication, async (req, res) => {
 });
 
 // practice  Contest
-app.post("/practice_Contest", async (req, res) => {
+app.post("/practice_Contest",authhentication, async (req, res) => {
     try {
         const { combineId, fullname } = req.body;
         console.log("Request body:", req.body);
@@ -2181,7 +2181,7 @@ app.post("/practice_Contest", async (req, res) => {
     }
 });
 
-app.post("/practice_question",   async (req, res) => {
+app.post("/practice_question", authhentication,  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -2204,7 +2204,7 @@ app.post("/practice_question",   async (req, res) => {
     }
 });
 
-app.post("/practice_answer",  async (req, res) => {
+app.post("/practice_answer",authhentication,  async (req, res) => {
     try {
         const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
         const question = await practiceQuestion.findById(gkquestionId);
@@ -2275,7 +2275,7 @@ app.post("/practice_answer",  async (req, res) => {
 });
 
 
-app.get("/get_user_score", async (req, res) => {
+app.get("/get_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {
         if (!combineId || !contestId) {
