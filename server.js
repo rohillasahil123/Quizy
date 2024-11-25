@@ -41,7 +41,7 @@ const SchoolContest = require ("./Model/School.js")
 const weeklycontest = require("./Model/Weekly.js")
 const Megacontest = require ("./Model/Mega.js")
 const practiceQuestion = require ("./Model/PracticeQuestion.js")
-const practiceAnswer = require('./Model/PracticeAnswer.js');
+const practice_Answer = require('./Model/PracticeAnswer.js');
 
 
 const app = express();
@@ -2188,7 +2188,7 @@ app.post("/practice_question", authhentication,  async (req, res) => {
         if (!othervalues) {
             return res.status(400).send({ message: "Data is not available" });
         }
-        const count = await gkQuestion.countDocuments();
+        const count = await practiceQuestion.countDocuments();
         if (count === 0) {
             return res.status(404).send({
                 message: "No questions available",
@@ -2196,7 +2196,7 @@ app.post("/practice_question", authhentication,  async (req, res) => {
             });
         }
         const randomIndex = Math.floor(Math.random() * count);
-        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        const randomQuestion = await practiceQuestion.findOne().skip(randomIndex);
         res.status(200).send({ randomQuestion, totalQuestions: count });
     } catch (error) {
         console.log(error);
@@ -2204,75 +2204,86 @@ app.post("/practice_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/practice_answer",authhentication,  async (req, res) => {
+app.post("/practice_answer", async (req, res) => {
+    const { combineId, contestId, practiceQuestionId, selectedOption, fullname } = req.body; 
+
     try {
-        const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-        const question = await practiceQuestion.findById(gkquestionId);
-        if (!question) {
-            return res.status(404).json({ message: "Question not found" });
+        const user = await CombineDetails.findById(combineId);
+        if (!user) {
+            return res.status(400).send({ message: "User not found" });
         }
+
+        const contest = await practiceContest.findById(contestId);
+        if (!contest) {
+            return res.status(404).send({ message: "Contest not found" });
+        }
+
+        if (!contest.combineId.equals(combineId)) {
+            return res
+                .status(403)
+                .send({ message: "User is not part of this contest" });
+        }
+
+        const question = await practiceQuestion.findById(practiceQuestionId);
+        if (!question) {
+            return res.status(404).send({ message: "Question not found" });
+        }
+
         const isCorrect = question.correctAnswer === selectedOption;
 
-        const combinedata = await CombineDetails.findById(combineId);
-        if (!combinedata) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        let contestScore = 0;
         if (isCorrect) {
-            combinedata.score += 1;
-            await combinedata.save();
-            let contest = await practiceContest.findById(contestId);
-            if (!contest) {
-                return res.status(404).json({ message: "Contest not found" });
-            }
-            if (contest.combineId.toString() === combineId.toString()) {
-                contest.Score += 1;
-                contestScore = contest.Score;
-                await contest.save();
-            } else {
-                return res.status(404).json({ message: "User not part of this contest" });
-            }
+            user.score += 1; // Increment user's total score
+            await user.save();
+
+            contest.Score += 1; // Increment the contest's score
+            await contest.save();
         }
-        const answer = new practiceAnswer({
+
+        const answer = new practice_Answer({
             combineId,
             contestId,
-            gkquestionId,
-            selectedOption
+            practiceQuestionId,
+            selectedOption,
+            fullname, // Save fullname with the answer
         });
         await answer.save();
-        const userAnswers = await practiceAnswer.find({ gkquestionId });
-        let totalCorrectAnswers = 0;
-        let totalIncorrectAnswers = 0;
-        userAnswers.forEach(answer => {
-            if (answer.selectedOption === question.correctAnswer) {
-                totalCorrectAnswers++;
+
+        const allAnswers = await practice_Answer.find({ practiceQuestionId });
+
+        let totalCorrect = 0;
+        let totalIncorrect = 0;
+
+        allAnswers.forEach((ans) => {
+            if (ans.selectedOption === question.correctAnswer) {
+                totalCorrect++;
             } else {
-                totalIncorrectAnswers++;
+                totalIncorrect++;
             }
         });
-        const performanceMessage = contestScore > 5 ? "Good" : "Bad";
-        res.json({
+
+        res.status(200).send({
             combineId,
+            fullname, // Return fullname in the response
             contestId,
-            gkquestionId,
+            practiceQuestionId,
             selectedOption,
             isCorrect,
-            combineuser,
-            score: {
-                contestScore,
-            },
+            score: user.score,
+            contestScore: contest.Score,
             questionStats: {
-                totalCorrectAnswers,
-                totalIncorrectAnswers
+                totalCorrectAnswers: totalCorrect,
+                totalIncorrectAnswers: totalIncorrect,
             },
-            message: `User ${combineuser} answered the question ${isCorrect ? 'correctly' : 'incorrectly'}. Performance: ${performanceMessage}.`,
+            message: `Your answer was ${
+                isCorrect ? "correct" : "incorrect"
+            }.`,
         });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
     }
 });
+
 
 
 app.get("/get_user_score",authhentication, async (req, res) => {
