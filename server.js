@@ -1758,6 +1758,38 @@ app.get("/Mega_leaderboard",authhentication,  async (req, res) => {
 });
 
 
+app.get("/mega_user_score", async (req, res) => {
+    const { combineId, contestId } = req.query;
+    try {
+      if (!combineId || !contestId) {
+        return res.status(400).json({ error: "Missing combineId or contestId" });
+      }
+      const contestData = await  Megacontest.findOne({
+        _id: contestId,
+        "combineId.id": combineId, 
+      });
+      if (!contestData) {
+        return res.status(404).json({ error: "Participant not found in contest" });
+      }
+      const participant = contestData.combineId.find(
+        (user) => user.id.toString() === combineId
+      );
+      if (!participant) {
+        return res.status(404).json({ error: "User not found in contest" });
+      }
+      res.status(200).json({
+        score: participant.score,
+        fullname: participant.fullname,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
+
+
+
+
 // Globli LeaderBoard
 app.post("/leaderboard/globle", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -1976,6 +2008,38 @@ app.get("/Weekly_contest_show",   async (req, res) => {
     }
 });
 
+app.get("/Weekly_user_score", async (req, res) => {
+    const { combineId, contestId } = req.query;
+    try {
+      if (!combineId || !contestId) {
+        return res.status(400).json({ error: "Missing combineId or contestId" });
+      }
+      const contestData = await weeklycontest.findOne({
+        _id: contestId,
+        "combineId.id": combineId, 
+      });
+      if (!contestData) {
+        return res.status(404).json({ error: "Participant not found in contest" });
+      }
+      const participant = contestData.combineId.find(
+        (user) => user.id.toString() === combineId
+      );
+      if (!participant) {
+        return res.status(404).json({ error: "User not found in contest" });
+      }
+      res.status(200).json({
+        score: participant.score,
+        fullname: participant.fullname,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
+
+
+
+
 
 //monthly Api 
 app.post("/monthly-contest", authhentication ,  async (req, res) => {
@@ -2103,6 +2167,36 @@ app.post("/monthly_answer", authhentication, async (req, res) => {
 });
 
 
+app.get("/monthly_user_score", async (req, res) => {
+    const { combineId, contestId } = req.query;
+    try {
+      if (!combineId || !contestId) {
+        return res.status(400).json({ error: "Missing combineId or contestId" });
+      }
+      const contestData = await monthContest.findOne({
+        _id: contestId,
+        "combineId.id": combineId, 
+      });
+      if (!contestData) {
+        return res.status(404).json({ error: "Participant not found in contest" });
+      }
+      const participant = contestData.combineId.find(
+        (user) => user.id.toString() === combineId
+      );
+      if (!participant) {
+        return res.status(404).json({ error: "User not found in contest" });
+      }
+      res.status(200).json({
+        score: participant.score,
+        fullname: participant.fullname,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
+
+
 app.get("/monthly_contest_show", authhentication ,  async (req, res) => { 
     const { id } = req.query;
     try {
@@ -2204,7 +2298,7 @@ app.post("/practice_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/practice_answer", async (req, res) => {
+app.post("/practice_answer",authhentication, async (req, res) => {
     const { combineId, contestId, practiceQuestionId, selectedOption, fullname } = req.body; 
 
     try {
@@ -2232,10 +2326,10 @@ app.post("/practice_answer", async (req, res) => {
         const isCorrect = question.correctAnswer === selectedOption;
 
         if (isCorrect) {
-            user.score += 1; // Increment user's total score
+            user.score += 1; 
             await user.save();
 
-            contest.Score += 1; // Increment the contest's score
+            contest.Score += 1; 
             await contest.save();
         }
 
@@ -2244,7 +2338,7 @@ app.post("/practice_answer", async (req, res) => {
             contestId,
             practiceQuestionId,
             selectedOption,
-            fullname, // Save fullname with the answer
+            fullname, 
         });
         await answer.save();
 
@@ -2263,7 +2357,7 @@ app.post("/practice_answer", async (req, res) => {
 
         res.status(200).send({
             combineId,
-            fullname, // Return fullname in the response
+            fullname, 
             contestId,
             practiceQuestionId,
             selectedOption,
