@@ -1758,7 +1758,7 @@ app.get("/Mega_leaderboard",authhentication,  async (req, res) => {
 });
 
 
-app.get("/mega_user_score", async (req, res) => {
+app.get("/mega_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {
       if (!combineId || !contestId) {
@@ -1841,7 +1841,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 // Weekly Api 
-app.post("/weekly-contest",  async (req, res) => {
+app.post("/weekly-contest", authhentication, async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -1856,7 +1856,7 @@ app.post("/weekly-contest",  async (req, res) => {
     }
 });
 
-app.post("/weekly_join_contest", async (req, res) => {
+app.post("/weekly_join_contest",authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1895,7 +1895,7 @@ app.post("/weekly_join_contest", async (req, res) => {
     }
 });
 
-app.post("/weekly_question",  async (req, res) => {
+app.post("/weekly_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1918,7 +1918,7 @@ app.post("/weekly_question",  async (req, res) => {
     }
 });
 
-app.post("/weekly_answer",  async (req, res) => {
+app.post("/weekly_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1970,7 +1970,7 @@ app.post("/weekly_answer",  async (req, res) => {
     }
 });
 
-app.get("/Weekly_contest_show",   async (req, res) => { 
+app.get("/Weekly_contest_show",  authhentication, async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -2008,7 +2008,7 @@ app.get("/Weekly_contest_show",   async (req, res) => {
     }
 });
 
-app.get("/Weekly_user_score", async (req, res) => {
+app.get("/Weekly_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {
       if (!combineId || !contestId) {
@@ -2167,7 +2167,7 @@ app.post("/monthly_answer", authhentication, async (req, res) => {
 });
 
 
-app.get("/monthly_user_score", async (req, res) => {
+app.get("/monthly_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {
       if (!combineId || !contestId) {
