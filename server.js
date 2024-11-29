@@ -31,6 +31,7 @@ const Wallet = require("./Model/Wallet.js");
 const leaderboarddetail = require("./Model/LeadBoard.js");
 const Monthlyleaderboard = require ("./Model/MonthlyLeadboard")
 const Megaleaderboard = require ("./Model/MegaLeaderBoard.js")
+const Weeklyleaderboard = require("./Model/Weekly_leaderboard.js")
 const gkQuestion = require("./Model/OtherQuestion.js");
 const validateStudentData = require("./Middelware/MiddelWare.js")
 const monthContest = require("./Model/MonthlyContest.js")
@@ -1841,7 +1842,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
 
 
 // Weekly Api 
-app.post("/weekly-contest", authhentication, async (req, res) => {
+app.post("/weekly-contest",  async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -1856,7 +1857,7 @@ app.post("/weekly-contest", authhentication, async (req, res) => {
     }
 });
 
-app.post("/weekly_join_contest",authhentication, async (req, res) => {
+app.post("/weekly_join_contest", async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1895,7 +1896,7 @@ app.post("/weekly_join_contest",authhentication, async (req, res) => {
     }
 });
 
-app.post("/weekly_question", authhentication, async (req, res) => {
+app.post("/weekly_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1918,7 +1919,7 @@ app.post("/weekly_question", authhentication, async (req, res) => {
     }
 });
 
-app.post("/weekly_answer", authhentication, async (req, res) => {
+app.post("/weekly_answer",  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1934,9 +1935,9 @@ app.post("/weekly_answer", authhentication, async (req, res) => {
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            let leaderboardEntry = await Weeklyleaderboard.findOne({ combineId });
             if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
+                leaderboardEntry = new Weeklyleaderboard({
                     combineId,
                     combineuser,
                     score: 0,
@@ -1964,6 +1965,17 @@ app.post("/weekly_answer", authhentication, async (req, res) => {
             combineuser,
             score: contestScore,
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/Weekly_leaderboard",  async (req, res) => {
+    const { combineuser } = req.query;
+    try {
+        const topUsers = await Weeklyleaderboard.find().sort({ score: -1 }).limit(100000);
+        res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });

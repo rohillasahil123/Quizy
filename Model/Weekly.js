@@ -4,6 +4,7 @@ const participantSchema = new mongoose.Schema({
   id: { type: mongoose.Schema.Types.ObjectId, required: true },
   fullname: { type: String, required: true },
   score: { type: Number, default: 0 },
+  
 });
 
 const contestweekSchema = new mongoose.Schema({

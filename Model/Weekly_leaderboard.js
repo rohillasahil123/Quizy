@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const MegaLeaderboardSchema = new mongoose.Schema({
+const WeeklyLeaderboardSchema = new mongoose.Schema({
     combineId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Mega', 
+        ref: 'Weekly', 
         required: true
     },
     score: {
@@ -20,4 +20,4 @@ const MegaLeaderboardSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('MegaLeaderboard', MegaLeaderboardSchema);
+module.exports = mongoose.model('WeeklyLeaderboard', WeeklyLeaderboardSchema);
