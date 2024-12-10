@@ -300,7 +300,7 @@ app.post("/other/add", authhentication, async (req, res) => {
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
 
-        const initialAmount = 500;
+        const initialAmount = 50;
         if (!wallet) {
             wallet = new Wallet({ combineId: result._id, balance: initialAmount });
         } else {
@@ -1537,7 +1537,7 @@ app.post("/many/game/result", authhentication, async (req, res) => {
 app.get("/leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(1000000000000000);
+        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(100000000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
@@ -1588,7 +1588,7 @@ app.get("/getAmount", authhentication, async (req, res) => {
 
 // Yearly (Mega) Contest
  
-app.post("/mega-contest", authhentication,  async (req, res) => {
+app.post("/mega-contest", async (req, res) => {
     const initialContestCount = 1;
     try {
         const contests = await createMegaMultipleContests(initialContestCount);
@@ -1602,7 +1602,7 @@ app.post("/mega-contest", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/mega_join_contest", authhentication,  async (req, res) => {
+app.post("/mega_join_contest",  async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
     try {
         if (!fullname) {
@@ -1634,7 +1634,7 @@ app.post("/mega_join_contest", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/mega_question", authhentication,  async (req, res) => {
+app.post("/mega_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1657,7 +1657,7 @@ app.post("/mega_question", authhentication,  async (req, res) => {
     }
 });
 
-app.post("/mega_answer", authhentication,  async (req, res) => {
+app.post("/mega_answer",  async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -1881,13 +1881,23 @@ app.post("/weekly_join_contest", async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
         console.log("User found");
+        let userContestEntry = contestweek.combineId.find((entry) => entry.id.toString() === newcombineId.toString());
 
-        contestweek.combineId.push({ id: newcombineId, fullname });
+        if (userContestEntry) {
+           
+            userContestEntry.joinCount += 1;
+            userContestEntry.score = 0; 
+            console.log("User is joining again. JoinCount updated and score reset.");
+        } else {
+            contestweek.combineId.push({ id: newcombineId, fullname, joinCount: 1, score: 0 });
+            console.log("User added to contest for the first time.");
+        }
+
         await contestweek.save();
-        console.log("User added to contest");
+        console.log("Contest updated with user's join information");
 
         res.json({
-            message: `User ${fullname} joined contest and game`,
+            message: `User ${fullname} joined contest and game. Join count: ${userContestEntry ? userContestEntry.joinCount : 1}`,
             contestId,
         });
     } catch (err) {
@@ -1895,6 +1905,7 @@ app.post("/weekly_join_contest", async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
 
 app.post("/weekly_question",  async (req, res) => {
     const { combineId } = req.body;
@@ -2048,9 +2059,6 @@ app.get("/Weekly_user_score",authhentication, async (req, res) => {
       res.status(500).json({ error: "Server error" });
     }
   });
-
-
-
 
 
 //monthly Api 
