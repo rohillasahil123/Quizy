@@ -13,6 +13,10 @@ const participantSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  joinCount: {
+    type: Number,
+    default: 1,
+},
 });
 
 
