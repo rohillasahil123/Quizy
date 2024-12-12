@@ -2546,7 +2546,6 @@ app.get("/get_user_score",authhentication, async (req, res) => {
 
 
 app.post('/create-key-contest',authhentication, async (req, res) => {
-    // Utility to generate unique keys
     const generateKey = () => {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'; 
         let key = '';
@@ -2567,16 +2566,13 @@ app.post('/create-key-contest',authhentication, async (req, res) => {
         return res.status(201).json({
             success: true,
             message: 'Contest created successfully',
-            contest: { key: newContest.key }, // Responding with the contest key only
+            contest: { key: newContest.key },
         });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
-
-
-
 
 app.post('/join-contest-key', authhentication, async (req, res) => {
     const { key, combineId, fullname } = req.body;
@@ -2590,6 +2586,13 @@ app.post('/join-contest-key', authhentication, async (req, res) => {
 
         if (!contest) {
             return res.status(404).json({ success: false, message: 'Invalid contest key' });
+        }
+
+        // Check if the key is older than 5 minutes
+        const currentTime = new Date();
+        const keyAgeInMinutes = (currentTime - contest.createdAt) / (1000 * 60);
+        if (keyAgeInMinutes > 5) {
+            return res.status(400).json({ success: false, message: 'Contest key has expired' });
         }
 
         const isAlreadyJoined = contest.participants.some(
@@ -2613,6 +2616,7 @@ app.post('/join-contest-key', authhentication, async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
+
 
 
 
