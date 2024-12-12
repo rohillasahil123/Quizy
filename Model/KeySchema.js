@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const contestKeySchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
     participants: [{

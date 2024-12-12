@@ -2545,7 +2545,7 @@ app.get("/get_user_score",authhentication, async (req, res) => {
 
 
 
-app.post('/create-key-contest',authhentication, async (req, res) => {
+app.post('/create-key-contest',async (req, res) => {
     const generateKey = () => {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'; 
         let key = '';
@@ -2574,7 +2574,7 @@ app.post('/create-key-contest',authhentication, async (req, res) => {
     }
 });
 
-app.post('/join-contest-key', authhentication, async (req, res) => {
+app.post('/join-contest-key',  async (req, res) => {
     const { key, combineId, fullname } = req.body;
 
     if (!key || !combineId || !fullname) {
@@ -2617,6 +2617,79 @@ app.post('/join-contest-key', authhentication, async (req, res) => {
     }
 });
 
+app.post("/manual_questions",  async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "Data is not available" });
+        }
+   
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+
+        if (!randomQuestion) {
+            return res.status(404).send({ message: "Unable to fetch a question" });
+        }
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+// Verify Answer Api
+app.post("/manual_answer", async (req, res) => {
+    const { combineId, key, gkquestionId, selectedOption, combineuser } = req.body;
+    try {
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+        const isCorrect = question.correctAnswer === selectedOption;
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        let contestScore = 0;
+        if (isCorrect) {
+            combinedata.score += 1;
+            await combinedata.save();
+            let contest = await KeyContest.findOne({ key });
+            if (!contest) {
+                return res.status(404).json({ message: "Key not found" });
+            }
+            let userContest = contest.participants.find(
+                (participant) => participant.combineId.toString() === combineId
+            );
+            if (userContest) {
+                userContest.score = (userContest.score || 0) + 1; 
+                contestScore = userContest.score;
+                await contest.save();
+            }
+        }
+
+        res.json({
+            combineId,
+            key,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 
 
