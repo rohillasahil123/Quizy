@@ -2786,36 +2786,33 @@ app.post("/addquestionpractice", async (req, res) => {
 
 
 app.post("/teacherform", async (req, res) => {
-    const { schoolName, teacherName, Address, Number, Gmail, password, confirmPassword } = req.body;
-  
-    // Validate all fields
-    if (!schoolName || !teacherName || !Address || !Number || !Gmail || !password || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required." });
-    }
-  
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match." });
-    }
-  
-    try {
-      const newTeacher = new Schoolform({
-        schoolName,
-        teacherName,
-        Address,
-        Number,
-        Gmail,
-        password,
-        confirmPassword, // Save this field
-      });
-  
-      await newTeacher.save();
-      res.status(201).json({ message: "Teacher data saved successfully!", teacher: newTeacher });
-    } catch (error) {
-      console.error("Error saving teacher data:", error);
-      res.status(500).json({ message: "Internal server error." });
-    }
-  });
+  const { schoolName, teacherName, Address, Number, Gmail, password, confirmPassword } = req.body;
+  if (!schoolName || !teacherName || !Address || !Number || !Gmail || !password || !confirmPassword) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match." });
+  }
+  try {
+    const newTeacher = new Schoolform({
+      schoolName,
+      teacherName,
+      Address,
+      Number,
+      Gmail,
+      password,
+      confirmPassword, 
+    });
+
+    await newTeacher.save();
+    const token = jwt.sign({ Gmail }, secretKey, { expiresIn: "24h" });
+    res.status(201).json({ message: "Teacher data saved successfully!", teacher: newTeacher, token });
+  } catch (error) {
+    console.error("Error saving teacher data:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 
   app.post("/login/teacher", async (req, res) => {
     const { Gmail, password } = req.body;
