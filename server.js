@@ -63,7 +63,7 @@ app.post("/send-otp", async (req, res) => {
     if (!phoneRegex.test(phoneNumber)) {
         return res.status(400).json({ success: false, message: "Invalid phone number" });
     }
-    const otp = otpGenerator.generate(4, {
+    const otp = otpGenerator.generate(4, {  
         lowerCaseAlphabets: false,
         upperCaseAlphabets: false,
         specialChars: false,
@@ -2508,8 +2508,6 @@ app.post("/practice_answer",authhentication, async (req, res) => {
     }
 });
 
-
-
 app.get("/get_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {
@@ -2542,23 +2540,29 @@ app.get("/get_user_score",authhentication, async (req, res) => {
 
 
 // key Api 
+app.post('/create-key-contest',authhentication, async (req, res) => {
+    const joinAmount = 21; 
+    const participants = [];
 
-
-
-app.post('/create-key-contest',async (req, res) => {
     const generateKey = () => {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'; 
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
         let key = '';
         for (let i = 0; i < 6; i++) {
             key += characters.charAt(Math.floor(Math.random() * characters.length));
         }
         return key;
     };
+
     try {
         const key = generateKey();
 
+        const prizePoll = joinAmount * participants.length * 2;
+
         const newContest = new KeyContest({
-            key, 
+            key,
+            prizePoll,
+            joinAmount,
+            participants,
         });
 
         await newContest.save();
@@ -2566,7 +2570,11 @@ app.post('/create-key-contest',async (req, res) => {
         return res.status(201).json({
             success: true,
             message: 'Contest created successfully',
-            contest: { key: newContest.key },
+            contest: {
+                key: newContest.key,
+                prizePoll: newContest.prizePoll,
+                joinAmount: newContest.joinAmount,
+            },
         });
     } catch (error) {
         console.error(error);
@@ -2574,7 +2582,8 @@ app.post('/create-key-contest',async (req, res) => {
     }
 });
 
-app.post('/join-contest-key',  async (req, res) => {
+
+app.post('/join-contest-key',authhentication, async (req, res) => {
     const { key, combineId, fullname } = req.body;
 
     if (!key || !combineId || !fullname) {
@@ -2603,13 +2612,25 @@ app.post('/join-contest-key',  async (req, res) => {
             return res.status(400).json({ success: false, message: 'User already joined the contest' });
         }
 
+        // Add the participant to the contest
         contest.participants.push({ combineId, fullname });
+
+        // Calculate prizePoll by multiplying 21 with the number of participants
+        const participantCount = contest.participants.length;
+        contest.prizePoll = 21 * participantCount; // Multiply by number of participants
+
+        // Save the updated contest document
         await contest.save();
 
         return res.status(200).json({
             success: true,
             message: 'Joined contest successfully',
-            contest,
+            contest: {
+                key: contest.key,
+                prizePoll: contest.prizePoll,
+                joinAmount: 21,
+                participants: contest.participants,
+            },
         });
     } catch (error) {
         console.error(error);
@@ -2617,7 +2638,9 @@ app.post('/join-contest-key',  async (req, res) => {
     }
 });
 
-app.post("/manual_questions",  async (req, res) => {
+
+
+app.post("/manual_questions", async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -2646,7 +2669,7 @@ app.post("/manual_questions",  async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/manual_answer", async (req, res) => {
+app.post("/manual_answer", authhentication, async (req, res) => {
     const { combineId, key, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
