@@ -2806,7 +2806,7 @@ app.post("/teacherform", async (req, res) => {
 
     await newTeacher.save();
     const token = jwt.sign({ Gmail }, secretKey, { expiresIn: "24h" });
-    res.status(201).json({ message: "Teacher data saved successfully!", teacher: newTeacher, token });
+    res.status(201).json({ message: "successfull", teacher: newTeacher, token });
   } catch (error) {
     console.error("Error saving teacher data:", error);
     res.status(500).json({ message: "Internal server error." });
