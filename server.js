@@ -2805,8 +2805,8 @@ app.post("/teacherform", async (req, res) => {
     });
 
     await newTeacher.save();
-    const token = jwt.sign({ Gmail }, secretKey, { expiresIn: "24h" });
-    res.status(201).json({ message: "successfull", teacher: newTeacher, token });
+   
+    res.status(201).json({ message: "successfull", teacher: newTeacher });
   } catch (error) {
     console.error("Error saving teacher data:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -2827,7 +2827,8 @@ app.post("/teacherform", async (req, res) => {
       if (user.password !== password) {
         return res.status(401).json({ message: "Invalid password." });
       }
-      res.status(200).json({ message: "success", user });
+      const token = jwt.sign({ Gmail }, secretKey, { expiresIn: "24h" });
+      res.status(200).json({ message: "success", user , token });
     } catch (error) {
       console.error("Error during login:", error);
       res.status(500).json({ message: "Internal server error." });
