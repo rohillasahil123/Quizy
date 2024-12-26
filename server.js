@@ -45,6 +45,7 @@ const practiceQuestion = require ("./Model/PracticeQuestion.js")
 const practice_Answer = require('./Model/PracticeAnswer.js');
 const KeyContest = require ("./Model/KeySchema.js")
 const Schoolform = require("./Model/SchoolForm.js")
+const StudentSite = require("./Model/StudentSite.js")
 
 
 const app = express();
@@ -1849,7 +1850,7 @@ app.post("/weekly-contest", async (req, res) => {
     try {
         const contests = await createWeeklyContests(initialContestCount);
         res.json({
-            message: "monthly contests created successfully",
+            message: "Weekly contests created successfully",
             contests,
         });
     } catch (err) {
@@ -1905,60 +1906,10 @@ app.post("/weekly_join_contest",  async (req, res) => {
 
 
 
-app.post("/update_score", async (req, res) => {
-    const { contestId, combineId } = req.body;
-
-    try {
-        // Validate input
-        if (!contestId || !combineId) {
-            return res.status(400).json({ message: "contestId and combineId are required" });
-        }
-
-        // Find the contest
-        const contestweek = await weeklycontest.findById(contestId);
-        if (!contestweek) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-
-        // Check if the user is part of the contest
-        const userContestEntry = contestweek.combineId.find((entry) => entry.id.toString() === combineId.toString());
-        if (!userContestEntry) {
-            return res.status(404).json({ message: "User not found in the contest" });
-        }
-
-        // Get the latest score from the user's last game or contest
-        const userLatestScore = userContestEntry.score;  // Assuming the score is updated directly after a game
-
-        // If no score (or some condition to check if we need to update), update to the latest
-        if (userLatestScore > userContestEntry.score) {
-            // Update the contest score to reflect the better (latest) score
-            userContestEntry.score = userLatestScore;
-
-            // Save the updated contest data
-            await contestweek.save();
-
-            console.log(`User's score updated to the latest value: ${userContestEntry.score}`);
-
-            res.json({
-                message: `User ${userContestEntry.fullname}'s score updated to ${userLatestScore}`,
-                newScore: userContestEntry.score,
-            });
-        } else {
-            // If the latest score is not better, return a response saying it's already the best score
-            res.json({
-                message: `User ${userContestEntry.fullname} already has the best score (${userContestEntry.score}). No update required.`,
-            });
-        }
-    } catch (err) {
-        console.error("Error occurred:", err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
 
 
 
-
-app.post("/weekly_question", authhentication,  async (req, res) => {
+app.post("/weekly_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1984,65 +1935,73 @@ app.post("/weekly_question", authhentication,  async (req, res) => {
 
 app.post("/weekly_answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-  
-    try {
-      // Find the question
-      const question = await gkQuestion.findById(gkquestionId);
-      if (!question) {
-        return res.status(404).json({ message: "Question not found" });
-      }
-  
-      const isCorrect = question.correctAnswer === selectedOption;
-  
-      // Find the contest
-      const contest = await weeklycontest.findById(contestId);
-      if (!contest) {
-        return res.status(404).json({ message: "Contest not found" });
-      }
-  
-      // Find or create the participant
-      let participant = contest.combineId.find((user) => user.id.toString() === combineId.toString());
-  
-      if (!participant) {
-        // If participant doesn't exist, create a new one
-        participant = {
-          id: combineId, 
-          fullname: combineuser,
-          score: isCorrect ? 1 : 0, // Start with 1 if correct, otherwise 0
-          joinCount: 1,
-          previousScore: 0,
-        };
-        contest.combineId.push(participant);
-      } else {
-        // If participant exists, update scores
-        participant.previousScore = participant.score;
-  
-        if (isCorrect) {
-          participant.score += 1; // Increment by 1 only for correct answers
+    try { 
+       // Check if the question exists
+        const question = await gkQuestion.findById(gkquestionId);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
         }
-      }
-  
-      // Save the contest
-      await contest.save();
-  
-      // Response with updated participant details
-      res.json({
-        combineId,
-        contestId,
-        gkquestionId,
-        selectedOption,
-        isCorrect,
-        combineuser,
-        previousScore: participant.previousScore,
-        newScore: participant.score,
-        joinCount: participant.joinCount,
-      });
+
+        // Check if the selected option is correct
+        const isCorrect = question.correctAnswer === selectedOption;
+
+        // Find the user's data
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Initialize contest score
+        let contestScore = 0;
+
+        // If the answer is correct, update user's score and leaderboard
+        if (isCorrect) {
+            // Increase the user's score
+            combinedata.score += 1;
+            await combinedata.save();
+
+            // Update the leaderboard entry for the user
+            let leaderboardEntry = await Monthlyleaderboard.findOne({ combineId: combineId });
+            if (!leaderboardEntry) {
+                leaderboardEntry = new Weeklyleaderboard({
+                    combineId,
+                    combineuser,
+                    score: 0,
+                    Wallet: 0
+                });
+            }
+            leaderboardEntry.score += 1;
+            console.log("Updated leaderboard entry:", leaderboardEntry);
+            await leaderboardEntry.save();
+            // Find the contest and update the user's score in the contest
+            const contest = await weeklycontest.findById(contestId);
+            if (!contest) {
+                return res.status(404).json({ message: "Contest not found" });
+            }
+            const userContest = contest.combineId.find(user => user.id.toString() === combineId.toString());
+            if (userContest) {
+                // Increment the user's score in the contest
+                userContest.score += 1;
+                contestScore = userContest.score;
+                await contest.save();
+            }
+        }
+
+        // Respond with the updated information
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Server Error" });
+        console.error("Server error:", err);
+        res.status(500).json({ message: "Server Error" });
     }
-  });
-  
+});
 
 app.get("/Weekly_leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
@@ -2714,13 +2673,6 @@ app.post("/manual_answer", authhentication, async (req, res) => {
     }
 });
 
-
-
-
-
-
-
-
 // Site Api
 
 app.post("/addquestiongk", async (req, res) => {
@@ -2786,8 +2738,8 @@ app.post("/addquestionpractice", async (req, res) => {
 
 
 app.post("/teacherform", async (req, res) => {
-  const { schoolName, teacherName, Address, Number, Gmail, password, confirmPassword } = req.body;
-  if (!schoolName || !teacherName || !Address || !Number || !Gmail || !password || !confirmPassword) {
+  const { schoolName, teacherName, Address, Number, Gmail, password, confirmPassword, role } = req.body;
+  if (!schoolName || !teacherName || !Address || !Number || !Gmail || !password || !confirmPassword || !role) {
     return res.status(400).json({ message: "All fields are required." });
   }
   if (password !== confirmPassword) {
@@ -2801,12 +2753,13 @@ app.post("/teacherform", async (req, res) => {
       Number,
       Gmail,
       password,
-      confirmPassword, 
+      confirmPassword,
+      role
     });
 
     await newTeacher.save();
    
-    res.status(201).json({ message: "successfull", teacher: newTeacher });
+    res.status(201).json({ message: "success", teacher: newTeacher });
   } catch (error) {
     console.error("Error saving teacher data:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -2824,6 +2777,7 @@ app.post("/teacherform", async (req, res) => {
       if (!user) {
         return res.status(404).json({ message: "User not found. Please register first." });
       }
+      console.log(user)
       if (user.password !== password) {
         return res.status(401).json({ message: "Invalid password." });
       }
@@ -2834,6 +2788,64 @@ app.post("/teacherform", async (req, res) => {
       res.status(500).json({ message: "Internal server error." });
     }
   });
+
+
+
+
+  app.post("/child/register", async (req, res) => {
+    const { name, lastName, phoneNumber, school, password, confirmPassword, Gmail, role } = req.body;
+    if (!name || !lastName || !phoneNumber || !school || !password || !confirmPassword || !Gmail || !role) {
+        return res.status(400).json({ message: "All fields are required." });
+    }
+    if (password !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match." });
+    }
+    try {
+        const existingUser = await User.findOne({ Gmail });
+        if (existingUser) {
+            return res.status(400).json({ message: "User already registered with this Gmail." });
+        }
+        const newUser = new User({
+            name,
+            lastName,
+            phoneNumber,
+            school,
+            password, 
+            Gmail,
+            role
+        });
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully", user: newUser });
+    } catch (error) {
+        console.error("Error registering user:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+
+
+
+app.post("/login/child", async (req, res) => {
+    const { Gmail, password } = req.body;
+    if (!Gmail || !password) {
+        return res.status(400).json({ message: "Gmail and password are required." });
+    }
+    try {
+        const user = await StudentSite.findOne({ Gmail });
+        if (!user) {
+            return res.status(404).json({ message: "User not found. Please register first." });
+        }
+        const isMatch = password === user.password; 
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid password." });
+        }
+        const token = jwt.sign({ Gmail }, secretKey, { expiresIn: "24h" });
+        res.status(200).json({ message: "Login successful", user, token });
+    } catch (error) {
+        console.error("Error during login:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+
 
 // School APi 
 app.post('/create-school-contest',authhentication, async (req, res) => {
