@@ -784,7 +784,7 @@ app.get("/contestdata", authhentication, async (req, res) => {
 
 // other Student 11th & 12th Question 
 // Done
-app.post("/1-12_create-contest",  authhentication,    async (req, res) => {
+app.post("/1-12_create-contest",async (req, res) => {
     try {
         const contests = await  createStudentMultipleContests();
         res.json({
@@ -864,7 +864,7 @@ app.post("/1-12_questions", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/1-12_answer",  authhentication,   async (req, res) => {
+app.post("/1-12_answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -878,7 +878,7 @@ app.post("/1-12_answer",  authhentication,   async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        let contestScore = 0;
+        let contestScore = combinedata.score;
 
         if (isCorrect) {
             combinedata.score += 1;
@@ -894,6 +894,7 @@ app.post("/1-12_answer",  authhentication,   async (req, res) => {
             }
             leaderboardEntry.score += 1;
             await leaderboardEntry.save();
+
             let contest = await studentContestQuestion.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
@@ -902,7 +903,7 @@ app.post("/1-12_answer",  authhentication,   async (req, res) => {
             let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
             if (userContest) {
                 userContest.score += 1;
-                contestScore = userContest.score;
+                contestScore = userContest.score; // Update contestScore based on the user's score
                 await contest.save();
             }
         }
@@ -921,6 +922,106 @@ app.post("/1-12_answer",  authhentication,   async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
+
+
+
+
+// app.post("/1-12_answer", async (req, res) => {
+//     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+//     try {
+//         const question = await gkQuestion.findById(gkquestionId);
+//         if (!question) {
+//             return res.status(404).json({ message: "Question not found" });
+//         }
+//         const isCorrect = question.correctAnswer === selectedOption;
+//         console.log(isCorrect, "isCorrect")
+        
+//         const combinedata = await CombineDetails.findById(combineId);
+//         if (!combinedata) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         let contestScore = 0; // Default score
+
+//         if (isCorrect) {
+//             // Update user score
+//             combinedata.score === 0;
+//            const result =  combinedata.score += 1;
+           
+//             await combinedata.save();
+//             console.log(result, "result")
+
+//             const contest = await studentContestQuestion.findById(contestId);
+//             if (!contest) {
+//                 return res.status(404).json({ message: "Contest not found" });
+//             }
+
+//             // Find user contest entry
+//             const userContest = contest.combineId.find(
+//                 (user) => user.id.toString() === combineId.toString()
+//             );
+//             if (userContest) {
+//                 userContest.score += 1;
+//                 contestScore = userContest.score; // Assign updated score
+//                 await contest.save(); // Save contest data
+//             }
+//         }
+
+//         res.json({
+//             combineId,
+//             contestId,
+//             gkquestionId,
+//             selectedOption,
+//             isCorrect,
+//             combineuser,
+//             score: contestScore, 
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: "Server Error" });
+//     }
+// });
+
+
+
+
+app.post("/1-12_update-score", async (req, res) => {
+    const { combineId, tempScore, isValid } = req.body;
+  
+    if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
+      return res.status(400).json({ message: "Invalid input format." });
+    }
+  
+    try {
+      const scoreData = await Weeklyleaderboard.findOne({ combineId });
+      if (!scoreData) {
+        return res.status(404).json({ message: "Score record not found." });
+      }
+  
+      if (isValid) {
+        scoreData.score = tempScore; 
+    }
+  
+      scoreData.tempScore = null; 
+      scoreData.isValid = isValid;
+  
+      await scoreData.save();
+  
+      return res.status(200).json({
+        message: isValid
+          ? "Temp score successfully added to the real score."
+          : "Temp score reset without affecting the real score.",
+        score: scoreData.score,
+        combineId,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  });
+  
+
+
 
 app.get("/1-12_get-contest", authhentication,   async (req, res) => {
     try {
@@ -1596,40 +1697,8 @@ app.post("/mega-contest", async (req, res) => {
     try {
         const contests = await createMegaMultipleContests(initialContestCount);
         res.json({
-            message: "Weekly contests created successfully",
+            message: "Mega contests created successfully",
             contests,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/mega_join_contest",  async (req, res) => {
-    const { contestId, newcombineId, fullname } = req.body;
-    try {
-        if (!fullname) {
-            return res.status(400).json({ message: "Fullname is required" });
-        }
-
-        const contestWeekly = await Megacontest.findById(contestId);
-        if (!contestWeekly) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        if (contestWeekly.combineId.length >= 100000) { 
-            return res.status(400).json({ message: "Contest full" });
-        }
-
-        const user = await getUserById(newcombineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        contestWeekly.combineId.push({ id: newcombineId, fullname });
-        await contestWeekly.save();
-
-        res.json({
-            message: `User ${fullname} joined contest and game`,
-            contestId,
         });
     } catch (err) {
         console.error(err);
@@ -1660,14 +1729,46 @@ app.post("/mega_question",  async (req, res) => {
     }
 });
 
-app.post("/mega_answer",  async (req, res) => {
+app.post("/mega_join_contest", async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
+
+    try {
+        const contest = await Megacontest.findById(contestId);
+        console.log(contest, "contest")
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userEntry = contest.combineId.find(
+            (entry) => entry.id.toString() === newcombineId.toString()
+        );
+        if (userEntry) {
+            userEntry.joinCount += 1;
+        }else{
+            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
+        }
+
+        await contest.save();
+
+        res.json({
+            message: "User mega successfully joined the contest!",
+            joinCount: userEntry ? userEntry.joinCount : 1,
+        });
+    } catch (err) {
+        console.error("Error occurred:", err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/mega_answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
+
     try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
         const isCorrect = question.correctAnswer === selectedOption;
+
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
@@ -1676,27 +1777,44 @@ app.post("/mega_answer",  async (req, res) => {
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
-            let leaderboardEntry = await Megaleaderboard.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new Megaleaderboard({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
-            await leaderboardEntry.save();
-            let contest = await  Megacontest.findById(contestId);
+
+            const contest = await Megacontest.findById(contestId);
+            console.log(contest, "contest")
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
-            let userContest = contest.combineId.find((user) => user.id.toString() === combineId.toString());
+
+            if (!Array.isArray(contest.combineId)) {
+                return res.status(400).json({ message: "Invalid contest data" });
+            }
+
+            const userContest = contest.combineId.find(
+                (user) => user.id.toString() === combineId.toString()
+            );
             if (userContest) {
                 userContest.score += 1;
                 contestScore = userContest.score;
                 await contest.save();
             }
+
+            // Update leaderboard
+            const leaderboard = await Megaleaderboard.findOne({ combineId });
+
+            if (!leaderboard) {
+                // Create a new leaderboard entry
+                const newLeaderboard = new Megaleaderboard({
+                    combineId,
+                    score: contestScore,
+                    combineuser
+                });
+                await newLeaderboard.save();
+            } else {
+                leaderboard.score = contestScore;
+                leaderboard.combineuser = combineuser;
+                await leaderboard.save();
+            }
         }
+
         res.json({
             combineId,
             contestId,
@@ -1712,6 +1830,78 @@ app.post("/mega_answer",  async (req, res) => {
     }
 });
 
+app.post("/mega_reset_score", async (req, res) => {
+    const { combineId, contestId } = req.body;
+    try {
+      
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Reset user score
+        combinedata.score = 0;
+        await combinedata.save();
+
+        const contest = await Megacontest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userContest = contest.combineId.find(
+            (user) => user.id.toString() === combineId.toString()
+        );
+        if (userContest) {
+            userContest.score = 0;  
+            await contest.save();
+        }
+        res.json({
+            message: "Score reset successfully",
+            combineId,
+            contestId,
+            score: 0,  
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/mega_update_score", async (req, res) => {
+    const { combineId, tempScore, isValid } = req.body;
+  
+    if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
+      return res.status(400).json({ message: "Invalid input format." });
+    }
+  
+    try {
+      const scoreData = await Megaleaderboard.findOne({ combineId });
+      if (!scoreData) {
+        return res.status(404).json({ message: "Score record not found." });
+      }
+  
+      if (isValid) {
+        scoreData.score = tempScore; 
+    }
+  
+      scoreData.tempScore = null; 
+      scoreData.isValid = isValid;
+  
+      await scoreData.save();
+  
+      return res.status(200).json({
+        message: isValid
+          ? "Temp score successfully added to the real score."
+          : "Temp score reset without affecting the real score.",
+        score: scoreData.score,
+        combineId
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  });
+  
+  
 app.get("/mega_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
     try {
@@ -1842,73 +2032,6 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-
-// Weekly Api 
-app.post("/weekly-contest", async (req, res) => {
-    const initialContestCount = 1;
-    console.log("6")
-    try {
-        const contests = await createWeeklyContests(initialContestCount);
-        res.json({
-            message: "Weekly contests created successfully",
-            contests,
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-app.post("/weekly_join_contest",  async (req, res) => {
-    const { contestId, newcombineId, fullname } = req.body;
-    try {
-        if (!fullname) {
-            return res.status(400).json({ message: "Fullname is required" });
-        }
-        console.log("Checking contest");
-        const contestweek = await weeklycontest.findById(contestId);
-        if (!contestweek) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        console.log("Contest found");
-
-        if (contestweek.combineId.length >= 100000) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        console.log("Space available in contest");
-
-        const user = await getUserById(newcombineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        console.log("User found");
-
-        let userContestEntry = contestweek.combineId.find((entry) => entry.id.toString() === newcombineId.toString());
-
-        if (userContestEntry) {
-            userContestEntry.joinCount += 1;
-            console.log("User is joining again. JoinCount updated.");
-        } else {
-            contestweek.combineId.push({ id: newcombineId, fullname, joinCount: 1, score: 0 });
-            console.log("User added to contest for the first time.");
-        }
-        await contestweek.save();
-        console.log("Contest updated with user's join information");
-        res.json({
-            message: `User ${fullname} joined contest and game. Join count: ${userContestEntry ? userContestEntry.joinCount : 1}`,
-            contestId,
-        });
-    } catch (err) {
-        console.error("Error occurred:", err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
-
-
-
-
-
 app.post("/weekly_question",  async (req, res) => {
     const { combineId } = req.body;
     try {
@@ -1932,62 +2055,109 @@ app.post("/weekly_question",  async (req, res) => {
     }
 });
 
+// Weekly Api 
+app.post("/weekly-contest", async (req, res) => {
+    const initialContestCount = 1;
+    console.log("6")
+    try {
+        const contests = await createWeeklyContests(initialContestCount);
+        res.json({
+            message: "Weekly contests created successfully",
+            contests,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/weekly_join_contest", async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
+
+    try {
+        const contest = await weeklycontest.findById(contestId);
+
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userEntry = contest.combineId.find(
+            (entry) => entry.id.toString() === newcombineId.toString()
+        );
+        if (userEntry) {
+            userEntry.joinCount += 1;
+        }else{
+            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
+        }
+
+        await contest.save();
+
+        res.json({
+            message: "User successfully joined the contest!",
+            joinCount: userEntry ? userEntry.joinCount : 1,
+        });
+    } catch (err) {
+        console.error("Error occurred:", err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 app.post("/weekly_answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-    try { 
-       // Check if the question exists
+
+    try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
-
-        // Check if the selected option is correct
         const isCorrect = question.correctAnswer === selectedOption;
 
-        // Find the user's data
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
-
-        // Initialize contest score
         let contestScore = 0;
-
-        // If the answer is correct, update user's score and leaderboard
         if (isCorrect) {
-            // Increase the user's score
             combinedata.score += 1;
             await combinedata.save();
 
-            // Update the leaderboard entry for the user
-            let leaderboardEntry = await Monthlyleaderboard.findOne({ combineId: combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new Weeklyleaderboard({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                    Wallet: 0
-                });
-            }
-            leaderboardEntry.score += 1;
-            console.log("Updated leaderboard entry:", leaderboardEntry);
-            await leaderboardEntry.save();
-            // Find the contest and update the user's score in the contest
+            // Update contest score
             const contest = await weeklycontest.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
-            const userContest = contest.combineId.find(user => user.id.toString() === combineId.toString());
+
+            if (!Array.isArray(contest.combineId)) {
+                return res.status(400).json({ message: "Invalid contest data" });
+            }
+
+            const userContest = contest.combineId.find(
+                (user) => user.id.toString() === combineId.toString()
+            );
             if (userContest) {
-                // Increment the user's score in the contest
                 userContest.score += 1;
                 contestScore = userContest.score;
                 await contest.save();
             }
+
+            // Update leaderboard
+            const leaderboard = await Weeklyleaderboard.findOne({ combineId });
+
+            if (!leaderboard) {
+                // Create a new leaderboard entry
+                const newLeaderboard = new Weeklyleaderboard({
+                    combineId,
+                    score: contestScore,
+                    combineuser
+                });
+                await newLeaderboard.save();
+            } else {
+                // Update existing leaderboard entry
+                leaderboard.score = contestScore;
+                leaderboard.combineuser = combineuser;
+                await leaderboard.save();
+            }
         }
 
-        // Respond with the updated information
         res.json({
             combineId,
             contestId,
@@ -1998,11 +2168,82 @@ app.post("/weekly_answer", async (req, res) => {
             score: contestScore,
         });
     } catch (err) {
-        console.error("Server error:", err);
+        console.error(err);
         res.status(500).json({ message: "Server Error" });
     }
 });
 
+app.post("/weekly_reset_score", async (req, res) => {
+    const { combineId, contestId } = req.body;
+    try {
+      
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Reset user score
+        combinedata.score = 0;
+        await combinedata.save();
+
+        const contest = await weeklycontest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userContest = contest.combineId.find(
+            (user) => user.id.toString() === combineId.toString()
+        );
+        if (userContest) {
+            userContest.score = 0;  
+            await contest.save();
+        }
+        res.json({
+            message: "Score reset successfully",
+            combineId,
+            contestId,
+            score: 0,  
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/weekly_update-score", async (req, res) => {
+    const { combineId, tempScore, isValid } = req.body;
+  
+    if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
+      return res.status(400).json({ message: "Invalid input format." });
+    }
+  
+    try {
+      const scoreData = await Weeklyleaderboard.findOne({ combineId });
+      if (!scoreData) {
+        return res.status(404).json({ message: "Score record not found." });
+      }
+  
+      if (isValid) {
+        scoreData.score = tempScore; 
+    }
+  
+      scoreData.tempScore = null; 
+      scoreData.isValid = isValid;
+  
+      await scoreData.save();
+  
+      return res.status(200).json({
+        message: isValid
+          ? "Temp score successfully added to the real score."
+          : "Temp score reset without affecting the real score.",
+        score: scoreData.score,
+        combineId,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+});
+  
 app.get("/Weekly_leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
@@ -2081,7 +2322,6 @@ app.get("/Weekly_user_score",authhentication, async (req, res) => {
     }
   });
 
-
 //monthly Api 
 app.post("/monthly-contest",  async (req, res) => {
     const initialContestCount = 1;
@@ -2097,65 +2337,6 @@ app.post("/monthly-contest",  async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-app.post("/monthly_join_contest",  async (req, res) => {
-    const { contestId, newcombineId, fullname } = req.body;
-    try {
-        if (!fullname) {
-            return res.status(400).json({ message: "Fullname is required" });
-        }
-
-        console.log("Checking contest");
-
-        // Find the contest by contestId
-        const contestmonth = await monthContest.findById(contestId);
-        if (!contestmonth) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        console.log("Contest found");
-
-        // Check if the contest is full
-        if (contestmonth.combineId.length >= 100000) {
-            return res.status(400).json({ message: "Contest full" });
-        }
-        console.log("Space available in contest");
-
-        // Find the user by newcombineId
-        const user = await getUserById(newcombineId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        console.log("User found");
-
-        // Check if the user has already joined the contest
-        let userContestEntry = contestmonth.combineId.find((entry) => entry.id.toString() === newcombineId.toString());
-
-        if (userContestEntry) {
-            // If the user has already joined, update joinCount and reset score
-            userContestEntry.joinCount += 1;
-            userContestEntry.score = 0;
-            console.log("User is joining again. JoinCount updated and score reset.");
-        } else {
-            // If the user is joining for the first time, add them with joinCount = 1 and score = 0
-            contestmonth.combineId.push({ id: newcombineId, fullname, joinCount: 1, score: 0 });
-            console.log("User added to contest for the first time.");
-        }
-
-        // Save the updated contest data
-        await contestmonth.save();
-        console.log("Contest updated with user's join information");
-
-        // Respond with success message
-        res.json({
-            message: `User ${fullname} joined contest and game. Join count: ${userContestEntry ? userContestEntry.joinCount : 1}`,
-            contestId,
-        });
-    } catch (err) {
-        console.error("Error occurred:", err);
-        res.status(500).json({ message: "Server Error" });
-    }
-});
-
 
 
 app.post("/monthly_question",   async (req, res) => {
@@ -2182,63 +2363,93 @@ app.post("/monthly_question",   async (req, res) => {
 });
 
 
+app.post("/monthly_join_contest", async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
+
+    try {
+        const contest = await monthContest.findById(contestId);
+        console.log(contest, "contest")
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userEntry = contest.combineId.find(
+            (entry) => entry.id.toString() === newcombineId.toString()
+        );
+        if (userEntry) {
+            userEntry.joinCount += 1;
+        }else{
+            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
+        }
+
+        await contest.save();
+
+        res.json({
+            message: "User successfully joined the contest!",
+            joinCount: userEntry ? userEntry.joinCount : 1,
+        });
+    } catch (err) {
+        console.error("Error occurred:", err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 app.post("/monthly_answer", async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
-    try { 
-        // Check if the question exists
+
+    try {
         const question = await gkQuestion.findById(gkquestionId);
         if (!question) {
             return res.status(404).json({ message: "Question not found" });
         }
-
-        // Check if the selected option is correct
         const isCorrect = question.correctAnswer === selectedOption;
 
-        // Find the user's data
         const combinedata = await CombineDetails.findById(combineId);
         if (!combinedata) {
             return res.status(404).json({ message: "User not found" });
         }
-
-        // Initialize contest score
         let contestScore = 0;
-
-        // If the answer is correct, update user's score and leaderboard
         if (isCorrect) {
-            // Increase the user's score
             combinedata.score += 1;
             await combinedata.save();
 
-            // Update the leaderboard entry for the user
-            let leaderboardEntry = await Monthlyleaderboard.findOne({ combineId: combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new Monthlyleaderboard({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                    Wallet: 0
-                });
-            }
-            leaderboardEntry.score += 1;
-            console.log("Updated leaderboard entry:", leaderboardEntry);
-            await leaderboardEntry.save();
-
-            // Find the contest and update the user's score in the contest
+            // Update contest score
             const contest = await monthContest.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
             }
-            const userContest = contest.combineId.find(user => user.id.toString() === combineId.toString());
+
+            if (!Array.isArray(contest.combineId)) {
+                return res.status(400).json({ message: "Invalid contest data" });
+            }
+
+            const userContest = contest.combineId.find(
+                (user) => user.id.toString() === combineId.toString()
+            );
             if (userContest) {
-                // Increment the user's score in the contest
                 userContest.score += 1;
                 contestScore = userContest.score;
                 await contest.save();
             }
+
+            // Update leaderboard
+            const leaderboard = await Monthlyleaderboard.findOne({ combineId });
+
+            if (!leaderboard) {
+                // Create a new leaderboard entry
+                const newLeaderboard = new Monthlyleaderboard({
+                    combineId,
+                    score: contestScore,
+                    combineuser
+                });
+                await newLeaderboard.save();
+            } else {
+                // Update existing leaderboard entry
+                leaderboard.score = contestScore;
+                leaderboard.combineuser = combineuser;
+                await leaderboard.save();
+            }
         }
 
-        // Respond with the updated information
         res.json({
             combineId,
             contestId,
@@ -2249,12 +2460,82 @@ app.post("/monthly_answer", async (req, res) => {
             score: contestScore,
         });
     } catch (err) {
-        console.error("Server error:", err);
+        console.error(err);
         res.status(500).json({ message: "Server Error" });
     }
 });
 
+app.post("/monthly_reset_score", async (req, res) => {
+    const { combineId, contestId } = req.body;
+    try {
+      
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
 
+        // Reset user score
+        combinedata.score = 0;
+        await combinedata.save();
+
+        const contest = await monthContest.findById(contestId);
+        if (!contest) {
+            return res.status(404).json({ message: "Contest not found" });
+        }
+        const userContest = contest.combineId.find(
+            (user) => user.id.toString() === combineId.toString()
+        );
+        if (userContest) {
+            userContest.score = 0;  
+            await contest.save();
+        }
+        res.json({
+            message: "Score reset successfully",
+            combineId,
+            contestId,
+            score: 0,  
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/monthly_update-score", async (req, res) => {
+    const { combineId, tempScore, isValid } = req.body;
+  
+    if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
+      return res.status(400).json({ message: "Invalid input format." });
+    }
+  
+    try {
+      const scoreData = await Monthlyleaderboard.findOne({ combineId });
+      if (!scoreData) {
+        return res.status(404).json({ message: "Score record not found." });
+      }
+  
+      if (isValid) {
+        scoreData.score = tempScore; 
+    }
+  
+      scoreData.tempScore = null; 
+      scoreData.isValid = isValid;
+  
+      await scoreData.save();
+  
+      return res.status(200).json({
+        message: isValid
+          ? "Temp score successfully added to the real score."
+          : "Temp score reset without affecting the real score.",
+        score: scoreData.score,
+        combineId
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  });
+  
 app.get("/monthly_user_score",authhentication, async (req, res) => {
     const { combineId, contestId } = req.query;
     try {

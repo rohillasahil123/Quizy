@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const MegaLeaderboardSchema = new mongoose.Schema({
     combineId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Mega', 
+        ref: 'monthlyContest', 
         required: true
     },
     score: {

@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const WeeklyLeaderboardSchema = new mongoose.Schema({
+const studentLeaderboardSchema = new mongoose.Schema({
     combineId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Weekly',
+        ref: 'Student_Contest',
         required: true
     },
     score: {
@@ -20,4 +20,4 @@ const WeeklyLeaderboardSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('WeeklyLeaderboard', WeeklyLeaderboardSchema);
+module.exports = mongoose.model('StudentLeaderboard', studentLeaderboardSchema);

@@ -25,7 +25,9 @@ const contestSchema = new mongoose.Schema({
   maxParticipants: { type: Number, required: true }, 
   amount: { type: Number, required: true }, 
   winningAmount: { type: Number, required: true } ,
-  isFull: { type: Boolean, default: false }
+  isFull: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true }
+  
 });
 
 module.exports = mongoose.model('monthlyContest', contestSchema);

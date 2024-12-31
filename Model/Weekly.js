@@ -15,7 +15,7 @@ const participantSchema = new mongoose.Schema({
   },
   joinCount: {
     type: Number,
-    default: 1,
+    default: 0,
 },
 });
 
@@ -25,7 +25,10 @@ const contestweekSchema = new mongoose.Schema({
   maxParticipants: { type: Number, required: true }, 
   amount: { type: Number, required: true }, 
   winningAmount: { type: Number, required: true } ,
-  isFull: { type: Boolean, default: false }
+  isFull: { type: Boolean, default: false },
+  tempScore: { type: Number, default: null },
+  isValid: { type: Boolean, default: false },
+
 });
 
 module.exports = mongoose.model('Weekly_Contest', contestweekSchema);
