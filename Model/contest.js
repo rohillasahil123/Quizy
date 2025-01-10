@@ -22,7 +22,8 @@ const contestSchema = new mongoose.Schema({
   maxParticipants: { type: Number, required: true }, 
   amount: { type: Number, required: true },  // Game amount
   winningAmount: { type: Number, required: true } , // Winning amount, double the game amount
-  isFull: { type: Boolean, default: false }
+  isFull: { type: Boolean, default: false },
+  isValid: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model('Contest', contestSchema);

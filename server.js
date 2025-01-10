@@ -784,7 +784,7 @@ app.get("/contestdata", authhentication, async (req, res) => {
 
 // other Student 11th & 12th Question 
 // Done
-app.post("/1-12_create-contest",async (req, res) => {
+app.post("/1-12_create-contest",authhentication, async (req, res) => {
     try {
         const contests = await  createStudentMultipleContests();
         res.json({
@@ -864,7 +864,7 @@ app.post("/1-12_questions", authhentication, async (req, res) => {
 });
 
 // Verify Answer Api
-app.post("/1-12_answer", async (req, res) => {
+app.post("/1-12_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
     try {
         const question = await gkQuestion.findById(gkquestionId);
@@ -923,9 +923,6 @@ app.post("/1-12_answer", async (req, res) => {
     }
 });
 
-
-
-
 // app.post("/1-12_answer", async (req, res) => {
 //     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
 //     try {
@@ -982,10 +979,7 @@ app.post("/1-12_answer", async (req, res) => {
 //     }
 // });
 
-
-
-
-app.post("/1-12_update-score", async (req, res) => {
+app.post("/1-12_update-score", authhentication, async (req, res) => {
     const { combineId, tempScore, isValid } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
@@ -1020,9 +1014,6 @@ app.post("/1-12_update-score", async (req, res) => {
     }
   });
   
-
-
-
 app.get("/1-12_get-contest", authhentication,   async (req, res) => {
     try {
         const contests = await studentContestQuestion.find();
@@ -1093,7 +1084,6 @@ app.get("/1-12_one_contest", authhentication,   async (req, res) => {
     }
 });
 
-
 app.get("/1-12_get/score", authhentication,  async (req, res) => {
     const { contestId, combineId } = req.query;
     try {
@@ -1119,7 +1109,6 @@ app.get("/1-12_get/score", authhentication,  async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 });
-
 
 app.post("/1-12_system_compare",  authhentication,  async (req, res) => {
     const { contestId, combineId1, combineId2 } = req.body;
@@ -1166,8 +1155,6 @@ app.post("/1-12_system_compare",  authhentication,  async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
-
 
 //  competitive Part 
 // Done
@@ -1649,6 +1636,42 @@ app.get("/leaderboard", authhentication, async (req, res) => {
     }
 });
 
+app.post("/daily_update_score",  async (req, res) => {
+    const { combineId, tempScore, isValid } = req.body;
+  
+    if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
+      return res.status(400).json({ message: "Invalid input format." });
+    }
+  
+    try {
+      const scoreData = await leaderboarddetail.findOne({ combineId });
+      if (!scoreData) {
+        return res.status(404).json({ message: "Score record not found." });
+      }
+  
+      if (isValid) {
+        scoreData.score = tempScore; 
+    }
+  
+      scoreData.tempScore = null; 
+      scoreData.isValid = isValid;
+  
+      await scoreData.save();
+  
+      return res.status(200).json({
+        message: isValid
+          ? "Temp score successfully added to the real score."
+          : "Temp score reset without affecting the real score.",
+        score: scoreData.score,
+        combineId
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  });
+  
+
 
 
 // Add wallet amount
@@ -1692,7 +1715,7 @@ app.get("/getAmount", authhentication, async (req, res) => {
 
 // Yearly (Mega) Contest
  
-app.post("/mega-contest", async (req, res) => {
+app.post("/mega-contest",authhentication, async (req, res) => {
     const initialContestCount = 1;
     try {
         const contests = await createMegaMultipleContests(initialContestCount);
@@ -1706,7 +1729,7 @@ app.post("/mega-contest", async (req, res) => {
     }
 });
 
-app.post("/mega_question",  async (req, res) => {
+app.post("/mega_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -1729,7 +1752,7 @@ app.post("/mega_question",  async (req, res) => {
     }
 });
 
-app.post("/mega_join_contest", async (req, res) => {
+app.post("/mega_join_contest",authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
@@ -1759,7 +1782,7 @@ app.post("/mega_join_contest", async (req, res) => {
     }
 });
 
-app.post("/mega_answer", async (req, res) => {
+app.post("/mega_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
 
     try {
@@ -1830,7 +1853,7 @@ app.post("/mega_answer", async (req, res) => {
     }
 });
 
-app.post("/mega_reset_score", async (req, res) => {
+app.post("/mega_reset_score", authhentication, async (req, res) => {
     const { combineId, contestId } = req.body;
     try {
       
@@ -1866,7 +1889,7 @@ app.post("/mega_reset_score", async (req, res) => {
     }
 });
 
-app.post("/mega_update_score", async (req, res) => {
+app.post("/mega_update_score", authhentication, async (req, res) => {
     const { combineId, tempScore, isValid } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
@@ -1980,9 +2003,6 @@ app.get("/mega_user_score",authhentication, async (req, res) => {
       res.status(500).json({ error: "Server error" });
     }
  });
-
-
-
 // Globli LeaderBoard
 app.post("/leaderboard/globle", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -2032,7 +2052,7 @@ app.post("/leaderboard/globle", authhentication, async (req, res) => {
     }
 });
 
-app.post("/weekly_question",  async (req, res) => {
+app.post("/mega_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -2056,7 +2076,7 @@ app.post("/weekly_question",  async (req, res) => {
 });
 
 // Weekly Api 
-app.post("/weekly-contest", async (req, res) => {
+app.post("/weekly-contest", authhentication, async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -2071,7 +2091,7 @@ app.post("/weekly-contest", async (req, res) => {
     }
 });
 
-app.post("/weekly_join_contest", async (req, res) => {
+app.post("/weekly_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
@@ -2101,7 +2121,33 @@ app.post("/weekly_join_contest", async (req, res) => {
     }
 });
 
-app.post("/weekly_answer", async (req, res) => {
+
+
+app.post("/weekly_question", authhentication, async (req, res) => {
+    const { combineId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "user is not available" });
+        }
+        const count = await gkQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+        res.status(200).send({ randomQuestion, totalQuestions: count });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+
+app.post("/weekly_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
 
     try {
@@ -2173,7 +2219,7 @@ app.post("/weekly_answer", async (req, res) => {
     }
 });
 
-app.post("/weekly_reset_score", async (req, res) => {
+app.post("/weekly_reset_score", authhentication, async (req, res) => {
     const { combineId, contestId } = req.body;
     try {
       
@@ -2209,7 +2255,7 @@ app.post("/weekly_reset_score", async (req, res) => {
     }
 });
 
-app.post("/weekly_update-score", async (req, res) => {
+app.post("/weekly_update-score", authhentication, async (req, res) => {
     const { combineId, tempScore, isValid } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
@@ -2255,7 +2301,7 @@ app.get("/Weekly_leaderboard", authhentication, async (req, res) => {
     }
 });
 
-app.get("/Weekly_contest_show",  authhentication, async (req, res) => { 
+app.get("/Weekly_contest_show",authhentication, async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -2278,7 +2324,7 @@ app.get("/Weekly_contest_show",  authhentication, async (req, res) => {
                 isFull,
                 players: contest.combineId.map(player => ({
                     combineId: player.id,
-                    score: player.score,
+                    score: player.updatedscore,
                     fullname: player.fullname
                 })),
             };
@@ -2323,7 +2369,7 @@ app.get("/Weekly_user_score",authhentication, async (req, res) => {
   });
 
 //monthly Api 
-app.post("/monthly-contest",  async (req, res) => {
+app.post("/monthly-contest", authhentication, async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -2339,7 +2385,7 @@ app.post("/monthly-contest",  async (req, res) => {
 });
 
 
-app.post("/monthly_question",   async (req, res) => {
+app.post("/monthly_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
         const othervalues = await CombineDetails.findById(combineId);
@@ -2363,7 +2409,7 @@ app.post("/monthly_question",   async (req, res) => {
 });
 
 
-app.post("/monthly_join_contest", async (req, res) => {
+app.post("/monthly_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
@@ -2393,7 +2439,7 @@ app.post("/monthly_join_contest", async (req, res) => {
     }
 });
 
-app.post("/monthly_answer", async (req, res) => {
+app.post("/monthly_answer", authhentication, async (req, res) => {
     const { combineId, contestId, gkquestionId, selectedOption, combineuser } = req.body;
 
     try {
@@ -2465,7 +2511,7 @@ app.post("/monthly_answer", async (req, res) => {
     }
 });
 
-app.post("/monthly_reset_score", async (req, res) => {
+app.post("/monthly_reset_score", authhentication, async (req, res) => {
     const { combineId, contestId } = req.body;
     try {
       
@@ -2501,7 +2547,7 @@ app.post("/monthly_reset_score", async (req, res) => {
     }
 });
 
-app.post("/monthly_update-score", async (req, res) => {
+app.post("/monthly_update-score", authhentication, async (req, res) => {
     const { combineId, tempScore, isValid } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
@@ -2566,7 +2612,7 @@ app.get("/monthly_user_score",authhentication, async (req, res) => {
   });
 
 
-app.get("/monthly_contest_show",   async (req, res) => { 
+app.get("/monthly_contest_show", authhentication, async (req, res) => { 
     const { id } = req.query;
     try {
         let contests;
@@ -2877,7 +2923,6 @@ app.post('/join-contest-key',authhentication, async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
-
 
 
 app.post("/manual_questions", authhentication, async (req, res) => {

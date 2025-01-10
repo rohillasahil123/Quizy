@@ -17,6 +17,7 @@ const LeaderboardSchema = new mongoose.Schema({
         Wallet: {
             type: Number,
             default: 0
-        }
+        },
+        isValid: { type: Boolean, default: false },
     })
 module.exports = mongoose.model('leaderboard', LeaderboardSchema);
