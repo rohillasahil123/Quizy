@@ -197,7 +197,7 @@ async function createNewContestWeek(playerFee) {
 
     const newContest = new weeklycontest({
         amount: playerFee,
-        winningAmount: 0,
+        winningAmount: 100000,
         combineId: [],
         maxParticipants: 100000,
         isFull: false,
@@ -214,12 +214,11 @@ async function createWeeklyContests() {
     let existingContest = await  weeklycontest.findOne({ amount: playerFee, isFull: false });
 
     if (existingContest) {
-        existingContest.winningAmount = existingContest.combineId.length * playerFee;
-
+     existingContest.winningAmount = 1000000;
+        console.log(existingContest.winningAmount)
         if (existingContest.combineId.length >= existingContest.maxParticipants) {
             existingContest.isFull = true;
             await existingContest.save();
-
             const newContest = await createNewContestWeek(playerFee);
             contests.push(newContest);
         } else {

@@ -1444,7 +1444,6 @@ app.post("/competitive_system_compare", authhentication, async (req, res) => {
     }
 });
 
-
 // Compare-Game-4 user
 app.post("/many/game/compare", authhentication, async (req, res) => {
     const { contestId, combineId1, combineId2, combineId3, combineId4, winningAmount } = req.body;
@@ -1512,7 +1511,6 @@ app.post("/many/game/compare", authhentication, async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
-
 
 // game Leaderboard user-2
 app.post("/game/result", authhentication, async (req, res) => {
@@ -1636,7 +1634,7 @@ app.get("/leaderboard", authhentication, async (req, res) => {
     }
 });
 
-app.post("/daily_update_score",  async (req, res) => {
+app.post("/daily_update_score", authhentication,  async (req, res) => {
     const { combineId, tempScore, isValid } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
@@ -1671,9 +1669,6 @@ app.post("/daily_update_score",  async (req, res) => {
     }
   });
   
-
-
-
 // Add wallet amount
 app.post("/wallet/add", authhentication, async (req, res) => {
     const { combineId, amount } = req.body;
@@ -1923,8 +1918,7 @@ app.post("/mega_update_score", authhentication, async (req, res) => {
       return res.status(500).json({ message: "Internal server error." });
     }
   });
-  
-  
+   
 app.get("/mega_contest_show", authhentication,  async (req, res) => { 
     const { id } = req.query;
     try {
@@ -2076,7 +2070,7 @@ app.post("/mega_question", authhentication, async (req, res) => {
 });
 
 // Weekly Api 
-app.post("/weekly-contest", authhentication, async (req, res) => {
+app.post("/weekly-contest", async (req, res) => {
     const initialContestCount = 1;
     console.log("6")
     try {
@@ -2120,8 +2114,6 @@ app.post("/weekly_join_contest", authhentication, async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 });
-
-
 
 app.post("/weekly_question", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -2823,8 +2815,6 @@ app.get("/get_user_score",authhentication, async (req, res) => {
     }
 });
 
-
-
 // key Api 
 app.post('/create-key-contest',authhentication, async (req, res) => {
     const joinAmount = 21; 
@@ -2867,7 +2857,6 @@ app.post('/create-key-contest',authhentication, async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
-
 
 app.post('/join-contest-key',authhentication, async (req, res) => {
     const { key, combineId, fullname } = req.body;
@@ -2923,7 +2912,6 @@ app.post('/join-contest-key',authhentication, async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
-
 
 app.post("/manual_questions", authhentication, async (req, res) => {
     const { combineId } = req.body;
@@ -3031,7 +3019,6 @@ app.post("/addquestiongk", async (req, res) => {
     }
 });
 
-
 app.post("/addquestionpractice", async (req, res) => {
     try {
         const { question, correctAnswer, options } = req.body;
@@ -3062,7 +3049,6 @@ app.post("/addquestionpractice", async (req, res) => {
     }
 });
 
-
 app.post("/teacherform", async (req, res) => {
   const { schoolName, teacherName, Address, Number, Gmail, password, confirmPassword, role } = req.body;
   if (!schoolName || !teacherName || !Address || !Number || !Gmail || !password || !confirmPassword || !role) {
@@ -3092,8 +3078,7 @@ app.post("/teacherform", async (req, res) => {
   }
 });
 
-
-  app.post("/login/teacher", async (req, res) => {
+app.post("/login/teacher", async (req, res) => {
     const { Gmail, password } = req.body;
     if (!Gmail || !password) {
       return res.status(400).json({ message: "Gmail and password are required." });
@@ -3115,10 +3100,7 @@ app.post("/teacherform", async (req, res) => {
     }
   });
 
-
-
-
-  app.post("/child/register", async (req, res) => {
+app.post("/child/register", async (req, res) => {
     const { name, lastName, phoneNumber, school, password, confirmPassword, Gmail, role } = req.body;
     if (!name || !lastName || !phoneNumber || !school || !password || !confirmPassword || !Gmail || !role) {
         return res.status(400).json({ message: "All fields are required." });
@@ -3148,8 +3130,6 @@ app.post("/teacherform", async (req, res) => {
     }
 });
 
-
-
 app.post("/login/child", async (req, res) => {
     const { Gmail, password } = req.body;
     if (!Gmail || !password) {
@@ -3172,7 +3152,6 @@ app.post("/login/child", async (req, res) => {
     }
 });
 
-
 // School APi 
 app.post('/create-school-contest',authhentication, async (req, res) => {
     const { schoolName } = req.body;
@@ -3193,7 +3172,6 @@ app.post('/create-school-contest',authhentication, async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
-
 
 app.post('/join-school-contest', authhentication, async (req, res) => {
     const { schoolName, combineId, fullname, schoolContestId } = req.body; 
@@ -3226,7 +3204,6 @@ app.post('/join-school-contest', authhentication, async (req, res) => {
     }
 });
 
-
 app.post("/school-question",authhentication, async (req, res) => {
     const { combineId } = req.body;
     try {
@@ -3255,7 +3232,6 @@ app.post("/school-question",authhentication, async (req, res) => {
     }
 });
 
-
 app.post("/addquestion", async (req, res) => {
     try {
       const { collectionName, question, correctAnswer, options } = req.body;
@@ -3282,9 +3258,7 @@ app.post("/addquestion", async (req, res) => {
     }
   });
   
-
 // test Api 
-
 
 app.get("/address" , async (req,res)=>{{
     console.log("2")
