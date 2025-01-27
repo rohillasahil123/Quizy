@@ -46,6 +46,7 @@ const practice_Answer = require('./Model/PracticeAnswer.js');
 const KeyContest = require ("./Model/KeySchema.js")
 const Schoolform = require("./Model/SchoolForm.js")
 const StudentSite = require("./Model/StudentSite.js")
+const AppDetails = require("./Model/AppDetails.js")
 
 
 const app = express();
@@ -564,16 +565,16 @@ app.post("/answer", authhentication, async (req, res) => {
         if (isCorrect) {
             combinedata.score += 1;
             await combinedata.save();
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
-            await leaderboardEntry.save();
+            // let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            // if (!leaderboardEntry) {
+            //     leaderboardEntry = new leaderboarddetail({
+            //         combineId,
+            //         combineuser,
+            //         score: 0,
+            //     });
+            // }
+            // leaderboardEntry.score += 1;
+            // await leaderboardEntry.save();
             let contest = await contestdetails.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
@@ -674,16 +675,16 @@ app.post("/other/answer", authhentication,  async (req, res) => {
             combinedata.score += 1;
             await combinedata.save();
 
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
-            await leaderboardEntry.save();
+            // let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            // if (!leaderboardEntry) {
+            //     leaderboardEntry = new leaderboarddetail({
+            //         combineId,
+            //         combineuser,
+            //         score: 0,
+            //     });
+            // }
+            // leaderboardEntry.score += 1;
+            // await leaderboardEntry.save();
             let contest = await contestdetails.findById(contestId);
             if (!contest) {
                 return res.status(404).json({ message: "Contest not found" });
@@ -884,16 +885,16 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
             combinedata.score += 1;
             await combinedata.save();
 
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
-            await leaderboardEntry.save();
+            // let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            // if (!leaderboardEntry) {
+            //     leaderboardEntry = new leaderboarddetail({
+            //         combineId,
+            //         combineuser,
+            //         score: 0,
+            //     });
+            // }
+            // leaderboardEntry.score += 1;
+            // await leaderboardEntry.save();
 
             let contest = await studentContestQuestion.findById(contestId);
             if (!contest) {
@@ -980,7 +981,7 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
 // });
 
 app.post("/1-12_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid } = req.body;
+    const { combineId, tempScore, isValid, completionTime } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
@@ -994,6 +995,7 @@ app.post("/1-12_update-score", authhentication, async (req, res) => {
   
       if (isValid) {
         scoreData.score = tempScore; 
+        scoreData.completionTime = completionTime;
     }
   
       scoreData.tempScore = null; 
@@ -1255,17 +1257,17 @@ app.post("/competitive_answer", authhentication, async (req, res) => {
             combinedata.score += 1;
             await combinedata.save();
 
-            let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
-            if (!leaderboardEntry) {
-                leaderboardEntry = new leaderboarddetail({
-                    combineId,
-                    combineuser,
-                    score: 0,
-                });
-            }
-            leaderboardEntry.score += 1;
+            // let leaderboardEntry = await leaderboarddetail.findOne({ combineId });
+            // if (!leaderboardEntry) {
+            //     leaderboardEntry = new leaderboarddetail({
+            //         combineId,
+            //         combineuser,
+            //         score: 0,
+            //     });
+            // }
+            // leaderboardEntry.score += 1;
 
-            await leaderboardEntry.save();
+            // await leaderboardEntry.save();
 
             let contest = await competitiveContest.findById(contestId);
             if (!contest) {
@@ -1626,7 +1628,7 @@ app.post("/many/game/result", authhentication, async (req, res) => {
 app.get("/leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await leaderboarddetail.find().sort({ score: -1 }).limit(100000000);
+        const topUsers = await leaderboarddetail.find().sort({ score: -1, completionTime: 1 }).limit(100000000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
@@ -1635,7 +1637,7 @@ app.get("/leaderboard", authhentication, async (req, res) => {
 });
 
 app.post("/daily_update_score", authhentication,  async (req, res) => {
-    const { combineId, tempScore, isValid } = req.body;
+    const { combineId, tempScore, isValid, completionTime } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
@@ -1649,6 +1651,7 @@ app.post("/daily_update_score", authhentication,  async (req, res) => {
   
       if (isValid) {
         scoreData.score = tempScore; 
+        scoreData.completionTime = completionTime;
     }
   
       scoreData.tempScore = null; 
@@ -1816,21 +1819,21 @@ app.post("/mega_answer", authhentication, async (req, res) => {
             }
 
             // Update leaderboard
-            const leaderboard = await Megaleaderboard.findOne({ combineId });
+            // const leaderboard = await Megaleaderboard.findOne({ combineId });
 
-            if (!leaderboard) {
-                // Create a new leaderboard entry
-                const newLeaderboard = new Megaleaderboard({
-                    combineId,
-                    score: contestScore,
-                    combineuser
-                });
-                await newLeaderboard.save();
-            } else {
-                leaderboard.score = contestScore;
-                leaderboard.combineuser = combineuser;
-                await leaderboard.save();
-            }
+            // if (!leaderboard) {
+            //     // Create a new leaderboard entry
+            //     const newLeaderboard = new Megaleaderboard({
+            //         combineId,
+            //         score: contestScore,
+            //         combineuser
+            //     });
+            //     await newLeaderboard.save();
+            // } else {
+            //     leaderboard.score = contestScore;
+            //     leaderboard.combineuser = combineuser;
+            //     await leaderboard.save();
+            // }
         }
 
         res.json({
@@ -1885,7 +1888,7 @@ app.post("/mega_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/mega_update_score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid } = req.body;
+    const { combineId, tempScore, isValid, completionTime } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
@@ -1899,6 +1902,7 @@ app.post("/mega_update_score", authhentication, async (req, res) => {
   
       if (isValid) {
         scoreData.score = tempScore; 
+        scoreData.completionTime = completionTime;
     }
   
       scoreData.tempScore = null; 
@@ -1960,7 +1964,7 @@ app.get("/mega_contest_show", authhentication,  async (req, res) => {
 app.get("/Mega_leaderboard",authhentication,  async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await Megaleaderboard.find().sort({ score: -1 }).limit(100000);
+        const topUsers = await Megaleaderboard.find().sort({ score: -1, completionTime: 1 }).limit(100000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
@@ -2178,22 +2182,22 @@ app.post("/weekly_answer", authhentication, async (req, res) => {
             }
 
             // Update leaderboard
-            const leaderboard = await Weeklyleaderboard.findOne({ combineId });
+            // const leaderboard = await Weeklyleaderboard.findOne({ combineId });
 
-            if (!leaderboard) {
-                // Create a new leaderboard entry
-                const newLeaderboard = new Weeklyleaderboard({
-                    combineId,
-                    score: contestScore,
-                    combineuser
-                });
-                await newLeaderboard.save();
-            } else {
-                // Update existing leaderboard entry
-                leaderboard.score = contestScore;
-                leaderboard.combineuser = combineuser;
-                await leaderboard.save();
-            }
+            // if (!leaderboard) {
+            //     // Create a new leaderboard entry
+            //     const newLeaderboard = new Weeklyleaderboard({
+            //         combineId,
+            //         score: contestScore,
+            //         combineuser
+            //     });
+            //     await newLeaderboard.save();
+            // } else {
+            //     // Update existing leaderboard entry
+            //     leaderboard.score = contestScore;
+            //     leaderboard.combineuser = combineuser;
+            //     await leaderboard.save();
+            // }
         }
 
         res.json({
@@ -2248,7 +2252,7 @@ app.post("/weekly_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/weekly_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid } = req.body;
+    const { combineId, tempScore, isValid, completionTime } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
@@ -2262,6 +2266,7 @@ app.post("/weekly_update-score", authhentication, async (req, res) => {
   
       if (isValid) {
         scoreData.score = tempScore; 
+        scoreData.completionTime = completionTime;
     }
   
       scoreData.tempScore = null; 
@@ -2285,7 +2290,7 @@ app.post("/weekly_update-score", authhentication, async (req, res) => {
 app.get("/Weekly_leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await Weeklyleaderboard.find().sort({ score: -1 }).limit(100000);
+        const topUsers = await Weeklyleaderboard.find().sort({ score: -1, completionTime: 1 }).limit(100000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
@@ -2470,22 +2475,22 @@ app.post("/monthly_answer", authhentication, async (req, res) => {
             }
 
             // Update leaderboard
-            const leaderboard = await Monthlyleaderboard.findOne({ combineId });
+            // const leaderboard = await Monthlyleaderboard.findOne({ combineId });
 
-            if (!leaderboard) {
-                // Create a new leaderboard entry
-                const newLeaderboard = new Monthlyleaderboard({
-                    combineId,
-                    score: contestScore,
-                    combineuser
-                });
-                await newLeaderboard.save();
-            } else {
-                // Update existing leaderboard entry
-                leaderboard.score = contestScore;
-                leaderboard.combineuser = combineuser;
-                await leaderboard.save();
-            }
+            // if (!leaderboard) {
+            //     // Create a new leaderboard entry
+            //     const newLeaderboard = new Monthlyleaderboard({
+            //         combineId,
+            //         score: contestScore,
+            //         combineuser
+            //     });
+            //     await newLeaderboard.save();
+            // } else {
+            //     // Update existing leaderboard entry
+            //     leaderboard.score = contestScore;
+            //     leaderboard.combineuser = combineuser;
+            //     await leaderboard.save();
+            // }
         }
 
         res.json({
@@ -2540,7 +2545,7 @@ app.post("/monthly_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/monthly_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid } = req.body;
+    const { combineId, tempScore, isValid, completionTime } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
@@ -2554,6 +2559,7 @@ app.post("/monthly_update-score", authhentication, async (req, res) => {
   
       if (isValid) {
         scoreData.score = tempScore; 
+        scoreData.completionTime = completionTime;
     }
   
       scoreData.tempScore = null; 
@@ -2650,7 +2656,7 @@ app.get("/monthly_contest_show", authhentication, async (req, res) => {
 app.get("/Monthly_leaderboard", authhentication, async (req, res) => {
     const { combineuser } = req.query;
     try {
-        const topUsers = await Monthlyleaderboard.find().sort({ score: -1 }).limit(100000);
+        const topUsers = await Monthlyleaderboard.find().sort({ score: -1, completionTime: 1 }).limit(100000);
         res.json({ topUsers, RequestedBy: combineuser });
     } catch (err) {
         console.error(err);
@@ -3258,6 +3264,26 @@ app.post("/addquestion", async (req, res) => {
     }
   });
   
+app.get("/get_app_version", async (req, res) => {
+    try {   
+        // Declare appDetailsDoc with let so it can be reassigned
+        let appDetailsDoc = await AppDetails.findOne({}, { appVersion: 1, _id: 0 });
+
+        // If no document is found, create a new document with default version
+        if (!appDetailsDoc) {
+            const defaultVersion = 1.0; // Default version to be set
+            appDetailsDoc = await AppDetails.create({ appVersion: defaultVersion, isUpdated: false });
+            return res.status(200).send({ appVersion: defaultVersion });
+        }
+        
+        // If document is found, return the version
+        res.status(200).send({ appVersion: appDetailsDoc.appVersion });
+    } catch (error) {
+        console.error("Error fetching app version:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
 // test Api 
 
 app.get("/address" , async (req,res)=>{{

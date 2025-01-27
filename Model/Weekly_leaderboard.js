@@ -10,6 +10,10 @@ const WeeklyLeaderboardSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    completionTime: {
+        type: Number,
+        default: 0
+    },
     combineuser: {
         type: String,
         required: true
