@@ -171,6 +171,29 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
+app.get("/getReferralCode", async (req, res) => {
+    try {
+        const { userId } = req.query;
+        if (!userId) 
+            return res.status(400).json({ message: "userId is required" });
+        const userRecord = await CombineDetails.findOne(
+            { _id: userId },
+            "formDetails.referralCode studentDetails.referralCode"
+        );
+        if (!userRecord) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const referralCode = userRecord.formDetails?.referralCode || userRecord.studentDetails?.referralCode;
+        if (!referralCode) {
+            return res.status(404).json({ message: "Referral code not found" });
+        }
+        res.status(200).json({ referralCode });
+    } catch (error) {
+        console.error("Error getting referral code:", error);
+        res.status(500).json({ message: "Failed to get referral code", details: error.message });
+    }
+});
+
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
@@ -300,20 +323,74 @@ app.put("/forget/password", authhentication, async (req, res) => {
 app.post("/other/add", authhentication, async (req, res) => {
     console.log("Incoming data:", req.body);
     try {
+        let initialAmountForUser = 10;
+        let referralBonusForUser = 10;
+        let referralBonusForReferrer = 10; 
+
+        const { referredBy } = req.body;
+
+        if (referredBy && referredBy.trim() !== "") {
+            const upperCaseReferredBy = referredBy.toUpperCase();
+            const referralRecord = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.referralCode": upperCaseReferredBy },
+                    { "studentDetails.referralCode": upperCaseReferredBy },
+                ],
+            });
+            if (!referralRecord) {
+                return res.status(202).json({ message: "Referral code not found" });
+            }
+            let referrerWallet = await Wallet.findOne({ combineId: referralRecord._id });
+            if (!referrerWallet) {
+                referrerWallet = new Wallet({ combineId: referralRecord._id, referralBalance: referralBonusForReferrer });
+            } else {
+                referrerWallet.referralBalance += referralBonusForReferrer;
+            }
+            await referrerWallet.save();
+            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit");
+
+            req.body.referredBy = {
+                userId: referralRecord._id,
+                fullname: referralRecord.formDetails?.fullname || referralRecord.studentDetails?.fullname,
+            };
+        }
+
+        let referralCode;
+        let isUnique = false;
+
+        while (!isUnique) {
+            referralCode = otpGenerator.generate(8, {
+                lowerCaseAlphabets: false,
+                upperCaseAlphabets: true,
+                specialChars: false,
+                number: true,
+            });
+            const existingReferral = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.referralCode": referralCode },
+                    { "studentDetails.referralCode": referralCode },
+                ],
+            });
+            if (!existingReferral) {
+                isUnique = true; 
+            }
+        }
+        req.body.referralCode = referralCode;
+
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
-
-        const initialAmount = 50;
         if (!wallet) {
-            wallet = new Wallet({ combineId: result._id, balance: initialAmount });
+            wallet = new Wallet({ combineId: result._id, balance: initialAmountForUser});
+            await logTransaction(result._id, initialAmountForUser, "credit");
         } else {
-            wallet.balance += initialAmount;
+            // wallet.referralBalance += referralBonusForUser;
+            // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
         }
         // Wallet //
         console.log(wallet);
         await wallet.save();
-        const transaction = await logTransaction(result._id, initialAmount, "credit");
+        const transaction = await logTransaction(result._id, initialAmountForUser, "credit");
         console.log(result);
         res.send({
             userDetails: result,
@@ -332,23 +409,73 @@ app.post("/student/add", authhentication, async (req, res) => {
     try {
         const studentData = req.body;
         validateStudentData(studentData);
+        let initialAmountForUser = 10;
+        let referralBonusForUser = 8;
+        let referralBonusForReferrer = 10; 
+
+        const { referredBy } = req.body;
+
+        if (referredBy && referredBy.trim() !== "") {
+            const upperCaseReferredBy = referredBy.toUpperCase();
+            const referralRecord = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.referralCode": upperCaseReferredBy },
+                    { "studentDetails.referralCode": upperCaseReferredBy },
+                ],
+            });
+            if (!referralRecord) {
+                return res.status(202).json({ message: "Referral code not found" });
+            }
+            let referrerWallet = await Wallet.findOne({ combineId: referralRecord._id });
+            if (!referrerWallet) {
+                referrerWallet = new Wallet({ combineId: referralRecord._id, referralBalance: referralBonusForReferrer });
+            } else {
+                referrerWallet.referralBalance += referralBonusForReferrer;
+            }
+            await referrerWallet.save();
+            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit");
+
+            req.body.referredBy = {
+                userId: referralRecord._id,
+                fullname: referralRecord.formDetails?.fullname || referralRecord.studentDetails?.fullname,
+            };
+        }
+
+        let referralCode;
+        let isUnique = false;
+
+        while (!isUnique) {
+            referralCode = otpGenerator.generate(8, {
+                lowerCaseAlphabets: false,
+                upperCaseAlphabets: true,
+                specialChars: false,
+                number: true,
+            });
+            const existingReferral = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.referralCode": referralCode },
+                    { "studentDetails.referralCode": referralCode },
+                ],
+            });
+            if (!existingReferral) {
+                isUnique = true; 
+            }
+        }
+        req.body.referralCode = referralCode;
+
         const studentdata = new CombineDetails({ studentDetails: studentData });
         const studentResult = await studentdata.save();
         console.log("Student-Result:", studentResult);
         let wallet = await Wallet.findOne({ combineId: studentResult._id });
-        console.log("Existing Wallet:", wallet);
-        const initialAmount = 500;
         if (!wallet) {
-            wallet = new Wallet({ combineId: studentResult._id, balance: initialAmount });
-            console.log("Created New Wallet:", wallet);
+            wallet = new Wallet({ combineId: studentResult._id, balance: initialAmountForUser});
+            await logTransaction(studentResult._id, initialAmountForUser, "credit");
         } else {
-            wallet.balance += initialAmount;
-            console.log("Updated Wallet Balance:", wallet);
+            // wallet.referralBalance += referralBonusForUser;
+            // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
         }
         await wallet.save();
         console.log("Saved Wallet:", wallet);
-        await logTransaction(studentResult._id, initialAmount, "credit");
-        console.log("Logged Transaction");
         res.send({
             studentDetails: studentResult,
             walletBalance: wallet.balance,
@@ -374,111 +501,59 @@ app.post("/create-contest_new",authhentication,  async (req, res) => {
     }
 });
 
-app.post("/join-game", authhentication,  async (req, res) => {
+app.post("/join-game", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
-    console.log("10")
+
     try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
+        const [contest, wallet] = await Promise.all([
+            contestdetails.findById(contestId),
+            getWalletBycombineId(combineId),
+        ]);
+
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
         const gameAmount = contest.amount;
-        console.log("2")
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
             return res.status(400).json({ message: "Insufficient balance" });
         }
+
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
         }
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        wallet.balance -= gameAmount;
+
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
         await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        if (contest.combineId.length >= contest.maxParticipants) {
-            contest.isFull = true;
-            await contest.save();
-            await createNewContest(gameAmount);
-        }
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit"),
+            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "referral"),
+        ]);
+
+        contest.combineId.push({ id: combineId, fullname });
+        await contest.save();
+        
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewContest(gameAmount),
+        //     ]);
+        // }
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
         });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
-    }
-});
-
-
-app.post("/system_compare",authhentication,  async (req, res) => {
-    const { contestId, combineId1, combineId2 } = req.body;
-    const fixedWalletId = "66fcf223377b6df30f65389d";
-    try {
-        const contest = await contestdetails.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
-        const user1 = contest.combineId.find((user) => user.id.toString() === combineId1);
-        if (!user1) {
-            return res.status(404).json({ message: "User 1 not found in contest" });
-        }
-        const user2 = contest.combineId.find((user) => user.id.toString() === combineId2);
-        if (!user2) {
-            return res.status(404).json({ message: "User 2 not found in contest" });
-        }
-        const  winningAmount = contest.winningAmount 
-        let winner;
-        if (user1.score > user2.score) {
-            winner = user1;
-        } else if (user1.score < user2.score) {
-            winner = user2;
-        } else {
-            return res.status(200).json({ message: "It's a tie!", user1, user2 });
-        }
-        const winnerAmount = (winningAmount * 0.75);
-        const systemCutAmount = (winningAmount * 0.25);
-        if (winnerAmount > 0) {
-            const winnerWallet = await getWalletBycombineId(winner.id);
-            if (!winnerWallet) {
-                return res.status(404).json({ message: "Winner's wallet not found" });
-            }
-            winnerWallet.balance += parseInt(winnerAmount);
-            await updateWallet(winnerWallet);
-            await logTransaction(winner.id, winnerAmount, "credit");
-            let fixedWallet = await getWalletBycombineId(fixedWalletId);
-            if (!fixedWallet) {
-                fixedWallet = new Wallet({ id: fixedWalletId, balance: 0 });
-            }
-            fixedWallet.balance += parseInt(systemCutAmount);
-            await updateWallet(fixedWallet);
-            await logTransaction(fixedWalletId, systemCutAmount, "credit");
-            return res.status(200).json({
-                message: "Winner determined and wallets updated",
-                winner: {
-                    combineId: winner.id,
-                    name: winner.fullname,
-                    score: winner.score,
-                    winnerWallet: winnerWallet.balance,
-                    fixedWallet: fixedWallet.balance,
-                },
-            });
-        } else {
-            return res.status(200).json({
-                message: "Winner determined, but no amount to distribute",
-                winner: {
-                    combineId: winner.id,
-                    name: winner.fullname,
-                },
-            });
-        }
-    } catch (error) {
-        console.error("Error occurred:", error);
-        res.status(500).send({ message: "Internal server error" });
     }
 });
 
@@ -718,7 +793,8 @@ app.get("/contests", authhentication, async (req, res) => {
         const contests = await contestdetails.find();
         const contestsWithStatus = contests
             .map(contest => {
-                const isFull = contest.combineId.length >= 2;
+                let isFull = false;
+                // isFull = contest.combineId.length >= 2;
 
                 return {
                     contestId: contest._id,
@@ -798,38 +874,57 @@ app.post("/1-12_create-contest",authhentication, async (req, res) => {
     }
 });
 
-app.post("/1-12_join-contest",   authhentication,  async (req, res) => {
+app.post("/1-12_join-contest", authhentication, async (req, res) => {
     const { contestId, combineId, fullname } = req.body;
+
     try {
-        const contest = await studentContestQuestion.findById(contestId);
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
-        }
+        const [contest, wallet] = await Promise.all([
+            studentContestQuestion.findById(contestId),
+            getWalletBycombineId(combineId),
+        ]);
+
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
         const gameAmount = contest.amount;
-        const wallet = await getWalletBycombineId(combineId);
-        if (!wallet) {
-            return res.status(404).json({ message: "Wallet not found" });
-        }
-        if (wallet.balance < gameAmount) {
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
             return res.status(400).json({ message: "Insufficient balance" });
         }
+
         if (contest.combineId.length >= contest.maxParticipants) {
             return res.status(400).json({ message: "Contest is already full" });
         }
-        contest.combineId.push({ id: combineId, fullname: fullname });
-        await contest.save();
-        wallet.balance -= gameAmount;
+
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
         await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
-        if (contest.combineId.length >= contest.maxParticipants) {
-            contest.isFull = true;
-            await contest.save();
-            await createNewContestSchool(gameAmount);
-        }
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit"),
+            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "referral"),
+        ]);
+
+        contest.combineId.push({ id: combineId, fullname });
+        await contest.save();
+
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewContestSchool(gameAmount),
+        //     ]);
+        // }
         res.json({
             message: "Successfully joined the contest",
             balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
         });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -981,16 +1076,33 @@ app.post("/1-12_answer", authhentication, async (req, res) => {
 // });
 
 app.post("/1-12_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid, completionTime } = req.body;
+    const { combineId, tempScore, isValid, completionTime, combineuser } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
     }
   
     try {
-      const scoreData = await Weeklyleaderboard.findOne({ combineId });
+      let scoreData = await Weeklyleaderboard.findOne({ combineId });
       if (!scoreData) {
-        return res.status(404).json({ message: "Score record not found." });
+        // Create a new document if it doesn't exist
+        scoreData = new Weeklyleaderboard({
+            combineId,
+            score: isValid ? tempScore : 0,
+            tempScore: null,
+            isValid,
+            combineuser: combineuser,
+            completionTime: isValid ? completionTime : null,
+        });
+
+        await scoreData.save();
+        return res.status(200).json({
+            message: isValid
+              ? "Temp score successfully added to the real score."
+              : "Temp score reset without affecting the real score.",
+            score: scoreData.score,
+            combineId,
+          });
       }
   
       if (isValid) {
@@ -1637,16 +1749,33 @@ app.get("/leaderboard", authhentication, async (req, res) => {
 });
 
 app.post("/daily_update_score", authhentication,  async (req, res) => {
-    const { combineId, tempScore, isValid, completionTime } = req.body;
+    const { combineId, tempScore, isValid, completionTime, combineuser } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
     }
   
     try {
-      const scoreData = await leaderboarddetail.findOne({ combineId });
+      let scoreData = await leaderboarddetail.findOne({ combineId });
       if (!scoreData) {
-        return res.status(404).json({ message: "Score record not found." });
+        // Create a new document if it doesn't exist
+        scoreData = new leaderboarddetail({
+            combineId,
+            score: isValid ? tempScore : 0,
+            tempScore: null,
+            isValid,
+            combineuser: combineuser,
+            completionTime: isValid ? completionTime : null,
+        });
+
+        await scoreData.save();
+        return res.status(200).json({
+            message: isValid
+              ? "Temp score successfully added to the real score."
+              : "Temp score reset without affecting the real score.",
+            score: scoreData.score,
+            combineId,
+          });
       }
   
       if (isValid) {
@@ -1750,29 +1879,59 @@ app.post("/mega_question", authhentication, async (req, res) => {
     }
 });
 
-app.post("/mega_join_contest",authhentication, async (req, res) => {
+app.post("/mega_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
-        const contest = await Megacontest.findById(contestId);
-        console.log(contest, "contest")
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
+        const [contest, wallet] = await Promise.all([
+            Megacontest.findById(contestId),
+            getWalletBycombineId(newcombineId),
+        ]);
+
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+        const gameAmount = contest.amount;
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
+            return res.status(400).json({ message: "Insufficient balance" });
         }
+
         const userEntry = contest.combineId.find(
             (entry) => entry.id.toString() === newcombineId.toString()
         );
-        if (userEntry) {
-            userEntry.joinCount += 1;
-        }else{
-            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
-        }
 
+        if (userEntry) {
+            userEntry.joinCount += 1; // Increment join count if user exists
+        } else {
+            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 }); // Add new user
+        }
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
+        await wallet.save();
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+        ]);
         await contest.save();
 
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewMegaContest(gameAmount), // Replace with your function to create a new mega contest
+        //     ]);
+        // }
         res.json({
             message: "User mega successfully joined the contest!",
             joinCount: userEntry ? userEntry.joinCount : 1,
+            balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
         });
     } catch (err) {
         console.error("Error occurred:", err);
@@ -1888,16 +2047,33 @@ app.post("/mega_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/mega_update_score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid, completionTime } = req.body;
+    const { combineId, tempScore, isValid, completionTime, combineuser } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
     }
   
     try {
-      const scoreData = await Megaleaderboard.findOne({ combineId });
+      let scoreData = await Megaleaderboard.findOne({ combineId });
       if (!scoreData) {
-        return res.status(404).json({ message: "Score record not found." });
+        // Create a new document if it doesn't exist
+        scoreData = new Megaleaderboard({
+            combineId,
+            score: isValid ? tempScore : 0,
+            tempScore: null,
+            isValid,
+            combineuser: combineuser,
+            completionTime: isValid ? completionTime : null,
+        });
+
+        await scoreData.save();
+        return res.status(200).json({
+            message: isValid
+              ? "Temp score successfully added to the real score."
+              : "Temp score reset without affecting the real score.",
+            score: scoreData.score,
+            combineId,
+          });
       }
   
       if (isValid) {
@@ -2093,26 +2269,58 @@ app.post("/weekly_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
-        const contest = await weeklycontest.findById(contestId);
+        const [contest, wallet] = await Promise.all([
+            weeklycontest.findById(contestId),
+            getWalletBycombineId(newcombineId),
+        ]);
 
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+        const gameAmount = contest.amount;
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
+            return res.status(400).json({ message: "Insufficient balance" });
         }
+
         const userEntry = contest.combineId.find(
             (entry) => entry.id.toString() === newcombineId.toString()
         );
+
         if (userEntry) {
-            userEntry.joinCount += 1;
-        }else{
-            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
+            userEntry.joinCount += 1; // Increment join count if user exists
+        } else {
+            contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 }); // Add new user
         }
 
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
+        await wallet.save();
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+        ]);
         await contest.save();
 
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewWeeklyContest(gameAmount), // Replace with your function to create a new weekly contest
+        //     ]);
+        // }
         res.json({
-            message: "User successfully joined the contest!",
+            message: "User successfully joined the weekly contest!",
             joinCount: userEntry ? userEntry.joinCount : 1,
+            balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
         });
+
     } catch (err) {
         console.error("Error occurred:", err);
         res.status(500).json({ message: "Server Error" });
@@ -2252,22 +2460,39 @@ app.post("/weekly_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/weekly_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid, completionTime } = req.body;
+    const { combineId, tempScore, isValid, completionTime, combineuser } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
     }
   
     try {
-      const scoreData = await Weeklyleaderboard.findOne({ combineId });
+      let scoreData = await Weeklyleaderboard.findOne({ combineId });
       if (!scoreData) {
-        return res.status(404).json({ message: "Score record not found." });
+        // Create a new document if it doesn't exist
+        scoreData = new Weeklyleaderboard({
+            combineId,
+            score: isValid ? tempScore : 0,
+            tempScore: null,
+            isValid,
+            combineuser: combineuser,
+            completionTime: isValid ? completionTime : null,
+        });
+
+        await scoreData.save();
+        return res.status(200).json({
+            message: isValid
+              ? "Temp score successfully added to the real score."
+              : "Temp score reset without affecting the real score.",
+            score: scoreData.score,
+            combineId,
+          });
       }
   
       if (isValid) {
         scoreData.score = tempScore; 
         scoreData.completionTime = completionTime;
-    }
+      }
   
       scoreData.tempScore = null; 
       scoreData.isValid = isValid;
@@ -2410,25 +2635,56 @@ app.post("/monthly_join_contest", authhentication, async (req, res) => {
     const { contestId, newcombineId, fullname } = req.body;
 
     try {
-        const contest = await monthContest.findById(contestId);
-        console.log(contest, "contest")
-        if (!contest) {
-            return res.status(404).json({ message: "Contest not found" });
+        const [contest, wallet] = await Promise.all([
+            monthContest.findById(contestId),
+            getWalletBycombineId(newcombineId),
+        ]);
+
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+        const gameAmount = contest.amount;
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
+            return res.status(400).json({ message: "Insufficient balance" });
         }
+
         const userEntry = contest.combineId.find(
             (entry) => entry.id.toString() === newcombineId.toString()
         );
+
         if (userEntry) {
             userEntry.joinCount += 1;
-        }else{
+        } else {
             contest.combineId.push({ id: newcombineId, fullname, joinCount: 1 });
         }
 
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
+        await wallet.save();
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+        ]);
         await contest.save();
 
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewMonthlyContest(gameAmount),
+        //     ]);
+        // }
         res.json({
-            message: "User successfully joined the contest!",
+            message: "User successfully joined the monthly contest!",
             joinCount: userEntry ? userEntry.joinCount : 1,
+            balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
         });
     } catch (err) {
         console.error("Error occurred:", err);
@@ -2545,16 +2801,33 @@ app.post("/monthly_reset_score", authhentication, async (req, res) => {
 });
 
 app.post("/monthly_update-score", authhentication, async (req, res) => {
-    const { combineId, tempScore, isValid, completionTime } = req.body;
+    const { combineId, tempScore, isValid, completionTime, combineuser } = req.body;
   
     if (typeof tempScore !== "number" || typeof isValid !== "boolean") {
       return res.status(400).json({ message: "Invalid input format." });
     }
   
     try {
-      const scoreData = await Monthlyleaderboard.findOne({ combineId });
+      let scoreData = await Monthlyleaderboard.findOne({ combineId });
       if (!scoreData) {
-        return res.status(404).json({ message: "Score record not found." });
+        // Create a new document if it doesn't exist
+        scoreData = new Monthlyleaderboard({
+            combineId,
+            score: isValid ? tempScore : 0,
+            tempScore: null,
+            isValid,
+            combineuser: combineuser,
+            completionTime: isValid ? completionTime : null,
+        });
+
+        await scoreData.save();
+        return res.status(200).json({
+            message: isValid
+              ? "Temp score successfully added to the real score."
+              : "Temp score reset without affecting the real score.",
+            score: scoreData.score,
+            combineId,
+          });
       }
   
       if (isValid) {
@@ -3264,6 +3537,26 @@ app.post("/addquestion", async (req, res) => {
     }
   });
   
+app.get("/get_app_version", async (req, res) => {
+    try {   
+        // Declare appDetailsDoc with let so it can be reassigned
+        let appDetailsDoc = await AppDetails.findOne({}, { appVersion: 1, _id: 0 });
+
+        // If no document is found, create a new document with default version
+        if (!appDetailsDoc) {
+            const defaultVersion = 1.0; // Default version to be set
+            appDetailsDoc = await AppDetails.create({ appVersion: defaultVersion, isUpdated: false });
+            return res.status(200).send({ appVersion: defaultVersion });
+        }
+        
+        // If document is found, return the version
+        res.status(200).send({ appVersion: appDetailsDoc.appVersion });
+    } catch (error) {
+        console.error("Error fetching app version:", error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
 app.get("/get_app_version", async (req, res) => {
     try {   
         // Declare appDetailsDoc with let so it can be reassigned

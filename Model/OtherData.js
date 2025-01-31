@@ -11,6 +11,11 @@ const formSchema = new mongoose.Schema({
     role  : { type:String , required:true , enum:["student" , "other"]  } ,
     phoneNumber: { type: String, required: true },
     dob: { type: String, required: true },
+    referralCode: { type: String, required: true},
+    referredBy: {
+        userId: mongoose.Schema.Types.ObjectId,
+        fullname: String,
+    },
     _id:false
 });
 // Define the student schema
@@ -26,7 +31,11 @@ const studentSchema = new mongoose.Schema({
     classvalue: { type: String, required: true },
     mediumName: { type: String, required: true },
     aadharcard: { type: String, required: true },
-   
+    referralCode: { type: String, required: true},
+    referredBy: {
+        userId: mongoose.Schema.Types.ObjectId,
+        fullname: String,
+    },
 });
 
 // Combine the two schemas into a single schema
