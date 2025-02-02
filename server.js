@@ -3557,26 +3557,6 @@ app.get("/get_app_version", async (req, res) => {
     }
 });
 
-app.get("/get_app_version", async (req, res) => {
-    try {   
-        // Declare appDetailsDoc with let so it can be reassigned
-        let appDetailsDoc = await AppDetails.findOne({}, { appVersion: 1, _id: 0 });
-
-        // If no document is found, create a new document with default version
-        if (!appDetailsDoc) {
-            const defaultVersion = 1.0; // Default version to be set
-            appDetailsDoc = await AppDetails.create({ appVersion: defaultVersion, isUpdated: false });
-            return res.status(200).send({ appVersion: defaultVersion });
-        }
-        
-        // If document is found, return the version
-        res.status(200).send({ appVersion: appDetailsDoc.appVersion });
-    } catch (error) {
-        console.error("Error fetching app version:", error);
-        res.status(500).send({ message: "Internal server error" });
-    }
-});
-
 // test Api 
 
 app.get("/address" , async (req,res)=>{{
