@@ -2,6 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 const cors = require ("cors");
+const cookieParser = require('cookie-parser');
+const {ensureAutheticated} = require('./Middelware/authMiddleware.js')
+const authRoute = require("./companyRoutes/authRoutes.js");
+const companyRoutes = require("./companyRoutes/companyRoutes.js");
 require("./configfile/config.js");
 const { getUserById,
     getWalletBycombineId,
@@ -53,9 +57,13 @@ const app = express();
 
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
-app.use(cors())
+app.use(cors({
+    origin: "*", // Replace with your frontend URL
+    credentials: true, // Allow sending cookies
+}));
 app.use(express.json());
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 
 // Login needed Api Start
@@ -3556,6 +3564,11 @@ app.get("/get_app_version", async (req, res) => {
         res.status(500).send({ message: "Internal server error" });
     }
 });
+
+
+app.use("/auth", authRoute);
+
+app.use("/company", ensureAutheticated, companyRoutes);
 
 // test Api 
 
