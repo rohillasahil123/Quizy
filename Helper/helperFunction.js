@@ -22,8 +22,8 @@ async function updateWallet(wallet) {
     return await wallet.save();
 }
 
-async function logTransaction(combineId, amount, type) {
-    const transaction = new Transaction({ combineId, amount, type });
+async function logTransaction(combineId, amount, type, title, status) {
+    const transaction = new Transaction({ combineId, amount, type, title, status });
     return await transaction.save();
 }
 
@@ -271,16 +271,16 @@ async function createNewContestMega(amount) {
 // School  Site function
 
 async function createSchoolMultipleContests(contestCount) {
-    const contestSchool = [];
-    for (let i = 0; i < contestCount; i++) {
-        const newContestmonth = new SchoolContest({
-            combineId: [],
-            schoolName: "",
-            maxParticipants: 100000,
-        });
-        contestSchool.push(await newContestmonth.save());
-    }
-    return contestSchool;
+//     const contestSchool = [];
+//     for (let i = 0; i < contestCount; i++) {
+//         const newContestmonth = new SchoolContest({
+//             combineId: [],
+//             schoolName: "",
+//             maxParticipants: 100000,
+//         });
+//         contestSchool.push(await newContestmonth.save());
+//     }
+//     return contestSchool;
 }
 
 module.exports = {

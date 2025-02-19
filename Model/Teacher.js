@@ -1,11 +1,7 @@
 const mongoose = require('mongoose');
 
-const SchoolSchema = new mongoose.Schema({
-    schoolName: {
-        type: String,
-        required: true,
-    },
-    principalName: {
+const TeacherSchema = new mongoose.Schema({
+    name: {
         type: String,
         required: true,
     },
@@ -23,19 +19,15 @@ const SchoolSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    city: {
+    class: {
         type: String,
         required: true,
     },
-    district: {
+    subject: {
         type: String,
         required: true,
     },
-    state: {
-        type: String,
-        required: true,
-    },
-    parent: {
+    schoolId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'CompanyUser',
         required: true
@@ -45,4 +37,4 @@ const SchoolSchema = new mongoose.Schema({
     resetToken: { type: String },
 });
 
-module.exports = mongoose.model('School', SchoolSchema);
+module.exports = mongoose.model('Teacher', TeacherSchema);

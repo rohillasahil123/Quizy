@@ -39,7 +39,10 @@ const CompanyUserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'CompanyUser',
         required: false
-    }
+    },
+    otp: { type: String },
+    tokenExpiration: { type: Date },
+    resetToken: { type: String },
 });
 
 module.exports = mongoose.model('CompanyUser', CompanyUserSchema);

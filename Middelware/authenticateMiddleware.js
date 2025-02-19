@@ -1,6 +1,6 @@
 const { getUser } = require("../services/auth");
 
-const ensureAutheticated = (req, res, next) => {
+const ensureAuthenticated = (req, res, next) => {
     const auth = req.cookies?.userToken;
     if (!auth) return res.status(403).json({ message: "Unauthorized, JWT token is required" });
     
@@ -24,5 +24,5 @@ const ensureAutheticated = (req, res, next) => {
 }
 
 module.exports = {
-    ensureAutheticated,
+    ensureAuthenticated,
 }

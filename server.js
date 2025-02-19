@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const axios = require("axios");
 const cors = require ("cors");
 const cookieParser = require('cookie-parser');
-const {ensureAutheticated} = require('./Middelware/authMiddleware.js')
+const {ensureAuthenticated} = require('./Middelware/authenticateMiddleware.js')
 const authRoute = require("./companyRoutes/authRoutes.js");
 const companyRoutes = require("./companyRoutes/companyRoutes.js");
 require("./configfile/config.js");
@@ -50,7 +50,9 @@ const practice_Answer = require('./Model/PracticeAnswer.js');
 const KeyContest = require ("./Model/KeySchema.js")
 const Schoolform = require("./Model/SchoolForm.js")
 const StudentSite = require("./Model/StudentSite.js")
-const AppDetails = require("./Model/AppDetails.js")
+const AppDetails = require("./Model/AppDetails.js");
+const { getShoppingPartner } = require("./controllers/shoppingController.js");
+const Transaction = require("./Model/Transation");
 
 
 const app = express();
@@ -352,7 +354,7 @@ app.post("/other/add", authhentication, async (req, res) => {
                 referrerWallet.referralBalance += referralBonusForReferrer;
             }
             await referrerWallet.save();
-            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit");
+            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit", "Refferal bonus", "completed");
 
             req.body.referredBy = {
                 userId: referralRecord._id,
@@ -387,7 +389,7 @@ app.post("/other/add", authhentication, async (req, res) => {
         let wallet = await Wallet.findOne({ combineId: result._id });
         if (!wallet) {
             wallet = new Wallet({ combineId: result._id, balance: initialAmountForUser});
-            await logTransaction(result._id, initialAmountForUser, "credit");
+            await logTransaction(result._id, initialAmountForUser, "credit", "Reward Money", "completed");
         } else {
             // wallet.referralBalance += referralBonusForUser;
             // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
@@ -395,7 +397,7 @@ app.post("/other/add", authhentication, async (req, res) => {
         // Wallet //
         console.log(wallet);
         await wallet.save();
-        const transaction = await logTransaction(result._id, initialAmountForUser, "credit");
+        const transaction = await logTransaction(result._id, initialAmountForUser, "credit", "Reward Money", "completed");
         console.log(result);
         res.send({
             userDetails: result,
@@ -438,7 +440,7 @@ app.post("/student/add", authhentication, async (req, res) => {
                 referrerWallet.referralBalance += referralBonusForReferrer;
             }
             await referrerWallet.save();
-            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit");
+            // await logTransaction(referralRecord._id, referralBonusForReferrer, "credit", "Refferal bonus", "completed");
 
             req.body.referredBy = {
                 userId: referralRecord._id,
@@ -474,7 +476,7 @@ app.post("/student/add", authhentication, async (req, res) => {
         let wallet = await Wallet.findOne({ combineId: studentResult._id });
         if (!wallet) {
             wallet = new Wallet({ combineId: studentResult._id, balance: initialAmountForUser});
-            await logTransaction(studentResult._id, initialAmountForUser, "credit");
+            await logTransaction(studentResult._id, initialAmountForUser, "credit", "Reward Money", "completed");
         } else {
             // wallet.referralBalance += referralBonusForUser;
             // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
@@ -493,7 +495,7 @@ app.post("/student/add", authhentication, async (req, res) => {
 
 // Form Student or other End
 //create contest 
-app.post("/create-contest_new",authhentication,  async (req, res) => {
+app.post("/create-contest_new",  async (req, res) => {
     try {
         const contests = await createMultipleContestss();
         res.json({
@@ -537,8 +539,8 @@ app.post("/join-game", authhentication, async (req, res) => {
         await wallet.save();
 
         await Promise.all([
-            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit"),
-            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "referral"),
+            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
         ]);
 
         contest.combineId.push({ id: combineId, fullname });
@@ -585,7 +587,7 @@ app.post("/join-game/many", authhentication, async (req, res) => {
         }
         wallet.balance -= gameAmount;
         await wallet.save();
-        await logTransaction(newcombineId, -gameAmount, "debit");
+        await logTransaction(newcombineId, -gameAmount, "debit", "Contest fee", "completed");
         contest.combineId.push({ id: newcombineId, fullname: fullname });
         await contest.save();
         res.json({
@@ -910,8 +912,8 @@ app.post("/1-12_join-contest", authhentication, async (req, res) => {
         await wallet.save();
 
         await Promise.all([
-            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit"),
-            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "referral"),
+            amountFromMainBalance > 0 && logTransaction(combineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(combineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
         ]);
 
         contest.combineId.push({ id: combineId, fullname });
@@ -1314,7 +1316,7 @@ app.post("/competitive_join-contest", authhentication,   async (req, res) => {
         await contest.save();
         wallet.balance -= gameAmount;
         await wallet.save();
-        await logTransaction(combineId, -gameAmount, "debit");
+        await logTransaction(combineId, -gameAmount, "debit", "Contest fee", "completed");
         if (contest.combineId.length >= contest.maxParticipants) {
             contest.isFull = true;
             await contest.save();
@@ -1822,7 +1824,7 @@ app.post("/wallet/add", authhentication, async (req, res) => {
     wallet.balance += parseInt(amount);
     await updateWallet(wallet);
 
-    const trty = await logTransaction(combineId, amount, "credit");
+    const trty = await logTransaction(combineId, amount, "credit", "Add Money", "completed");
     console.log("first", trty);
     res.json({ balance: wallet.balance });
 });
@@ -1920,8 +1922,8 @@ app.post("/mega_join_contest", authhentication, async (req, res) => {
         await wallet.save();
 
         await Promise.all([
-            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
-            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
         ]);
         await contest.save();
 
@@ -2307,8 +2309,8 @@ app.post("/weekly_join_contest", authhentication, async (req, res) => {
         await wallet.save();
 
         await Promise.all([
-            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
-            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
         ]);
         await contest.save();
 
@@ -2673,8 +2675,8 @@ app.post("/monthly_join_contest", authhentication, async (req, res) => {
         await wallet.save();
 
         await Promise.all([
-            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit"),
-            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "referral"),
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
         ]);
         await contest.save();
 
@@ -3437,84 +3439,84 @@ app.post("/login/child", async (req, res) => {
 });
 
 // School APi 
-app.post('/create-school-contest',authhentication, async (req, res) => {
-    const { schoolName } = req.body;
+// app.post('/create-school-contest',authhentication, async (req, res) => {
+//     const { schoolName } = req.body;
 
-    try {
-        const newContest = new SchoolContest({
-            schoolName,
-            participants: [], 
-            maxParticipants: 100000 
-        });
-        await newContest.save();
-        res.json({
-            message: 'School contest created successfully',
-            contest: newContest
-        });
-    } catch (err) {
-        console.error('Error creating school contest:', err);
-        res.status(500).json({ message: 'Server Error', error: err.message });
-    }
-});
+//     try {
+//         const newContest = new SchoolContest({
+//             schoolName,
+//             participants: [], 
+//             maxParticipants: 100000 
+//         });
+//         await newContest.save();
+//         res.json({
+//             message: 'School contest created successfully',
+//             contest: newContest
+//         });
+//     } catch (err) {
+//         console.error('Error creating school contest:', err);
+//         res.status(500).json({ message: 'Server Error', error: err.message });
+//     }
+// });
 
-app.post('/join-school-contest', authhentication, async (req, res) => {
-    const { schoolName, combineId, fullname, schoolContestId } = req.body; 
-    try {
-        const user = await CombineDetails.findById( combineId); 
+// app.post('/join-school-contest', authhentication, async (req, res) => {
+//     const { schoolName, combineId, fullname, schoolContestId } = req.body; 
+//     try {
+//         const user = await CombineDetails.findById( combineId); 
         
-        if (!user) {
-            return res.status(400).json({ message: 'User does not exist.' });
-        }
-        if (user.studentDetails.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
-            return res.status(400).json({ message: 'User is not from the specified school.' });
-        }
-        const contest = await SchoolContest.findById(schoolContestId);
-        if (!contest || contest.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
-            return res.status(404).json({ message: 'Contest not found for the specified school.' });
-        }
-        const participantExists = contest.participants.some(participant => participant.combineId.toString() === combineId);
-        if (participantExists) {
-            return res.status(400).json({ message: 'User is already a participant in this contest.' });
-        }
-        contest.participants.push({ combineId, fullname, score: 0 });
-        await contest.save();
-        res.json({
-            message: 'User has successfully joined the contest.',
-            contest,
-        });
-    } catch (err) {
-        console.error('Error joining contest:', err);
-        res.status(500).json({ message: 'Server Error', error: err.message });
-    }
-});
+//         if (!user) {
+//             return res.status(400).json({ message: 'User does not exist.' });
+//         }
+//         if (user.studentDetails.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
+//             return res.status(400).json({ message: 'User is not from the specified school.' });
+//         }
+//         const contest = await SchoolContest.findById(schoolContestId);
+//         if (!contest || contest.schoolName.trim().toLowerCase() !== schoolName.trim().toLowerCase()) {
+//             return res.status(404).json({ message: 'Contest not found for the specified school.' });
+//         }
+//         const participantExists = contest.participants.some(participant => participant.combineId.toString() === combineId);
+//         if (participantExists) {
+//             return res.status(400).json({ message: 'User is already a participant in this contest.' });
+//         }
+//         contest.participants.push({ combineId, fullname, score: 0 });
+//         await contest.save();
+//         res.json({
+//             message: 'User has successfully joined the contest.',
+//             contest,
+//         });
+//     } catch (err) {
+//         console.error('Error joining contest:', err);
+//         res.status(500).json({ message: 'Server Error', error: err.message });
+//     }
+// });
 
-app.post("/school-question",authhentication, async (req, res) => {
-    const { combineId } = req.body;
-    try {
-        const othervalues = await CombineDetails.findById(combineId);
-        if (!othervalues) {
-            return res.status(400).send({ message: "Data is not available" });
-        }
+// app.post("/school-question",authhentication, async (req, res) => {
+//     const { combineId } = req.body;
+//     try {
+//         const othervalues = await CombineDetails.findById(combineId);
+//         if (!othervalues) {
+//             return res.status(400).send({ message: "Data is not available" });
+//         }
    
-        const count = await gkQuestion.countDocuments();
-        if (count === 0) {
-            return res.status(404).send({
-                message: "No questions available",
-                totalQuestions: count,
-            });
-        }
-        const randomIndex = Math.floor(Math.random() * count);
-        const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
+//         const count = await gkQuestion.countDocuments();
+//         if (count === 0) {
+//             return res.status(404).send({
+//                 message: "No questions available",
+//                 totalQuestions: count,
+//             });
+//         }
+//         const randomIndex = Math.floor(Math.random() * count);
+//         const randomQuestion = await gkQuestion.findOne().skip(randomIndex);
 
-        if (!randomQuestion) {
-            return res.status(404).send({ message: "Unable to fetch a question" });
-        }
-        res.status(200).send({ randomQuestion, totalQuestions: count });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Internal server error" });
-    }
-});
+//         if (!randomQuestion) {
+//             return res.status(404).send({ message: "Unable to fetch a question" });
+//         }
+//         res.status(200).send({ randomQuestion, totalQuestions: count });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send({ message: "Internal server error" });
+//     }
+// });
 
 app.post("/addquestion", async (req, res) => {
     try {
@@ -3540,7 +3542,91 @@ app.post("/addquestion", async (req, res) => {
       console.error("Error adding question:", error);
       res.status(500).json({ message: "Server Error" });
     }
-  });
+});
+
+app.get("/checkPhoneNumber", authhentication, async (req, res) => {
+    try{
+        const {phoneNumber} = req.query;
+        if(!phoneNumber) res.status(200).json({ success: false, message: "Phone number is required" });
+        const userData = await CombineDetails.findOne({
+            $or: [
+                { "formDetails.phoneNumber": phoneNumber },
+                { "studentDetails.phoneNumber": phoneNumber },
+            ],
+        }).select('_id formDetails studentDetails');
+
+        if(!userData) return res.status(200).json({ success: false, message: "Don't have account on this number" });
+
+        const name =
+            (userData?.formDetails?.fullname) ||
+            (userData?.studentDetails?.fullname) ||
+            "Unknown";
+
+        return res.status(200).json({ success: true, _id: userData._id, name });
+    } catch (error) {
+        console.error("Error checking phone number:", error);
+        res.status(500).json({ success: false, message: "Invalid data" });
+    }
+});
+
+app.post("/wallet_to_wallet_transfer", authhentication, async (req, res) => {
+    try {
+        const { amount, senderCombineId, receiverCombineId } = req.body;
+        let senderNumber = req.user.phoneNumber;
+        let receiverNumber;
+        
+        if (!amount || !receiverCombineId || !senderCombineId) return res.status(400).json({ success: false, message: "Required details are missing" });
+        if (senderCombineId === receiverCombineId) return res.status(400).json({ success: false, message: "Can't send money to your own wallet" });
+        
+        const senderWallet = await getWalletBycombineId(senderCombineId);
+        if (!senderWallet) return res.status(404).json({ success: false, message: "Sender's wallet not found" });
+        if (senderWallet.balance < amount) return res.status(400).json({ success: false, message: "Insufficient balance" });
+
+        const receiverWallet = await getWalletBycombineId(receiverCombineId);
+        if (!receiverWallet) return res.status(404).json({ success: false, message: "Receiver's wallet not found" });
+
+        const receiverData = await CombineDetails.findById(receiverCombineId).select('_id formDetails studentDetails');
+        if (!receiverData) return res.status(404).json({ success: false, message: "Receiver not found" });
+        if(receiverData.formDetails){
+            receiverNumber = receiverData.formDetails.phoneNumber;
+        } else {
+            receiverNumber = receiverData.studentDetails.phoneNumber;
+        }
+
+        senderWallet.balance = Number(senderWallet.balance) - Number(amount);
+        receiverWallet.balance = Number(receiverWallet.balance) + Number(amount);
+        
+        await senderWallet.save();
+        await receiverWallet.save();
+        await logTransaction(senderCombineId, -amount, "debit", `Send to ${receiverNumber}`, "completed");
+        await logTransaction(receiverCombineId, +amount, "credit", `Received from ${senderNumber}`, "completed");
+
+        return res.status(200).json({ success: true, message: "Transfer successful" });
+    } catch (error) {
+        console.error("Wallet transfer error:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+app.get("/getTransactions", authhentication, async (req, res) => {
+    try {   
+        const combineId = req.query.combineId;
+        if (!combineId || typeof combineId !== "string") {
+            return res.status(400).json({ success: false, message: "Invalid or missing combineId" });
+        }
+
+        const transactions = await Transaction.find({combineId : combineId }).lean();
+
+        if (transactions.length === 0) {
+            return res.status(404).json({ success: false, message: "No transactions found" });
+        }
+        res.status(200).json({ success: true, transactions });
+    } catch (error) {
+        console.error("Error fetching transaction details:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
   
 app.get("/get_app_version", async (req, res) => {
     try {   
@@ -3562,10 +3648,11 @@ app.get("/get_app_version", async (req, res) => {
     }
 });
 
+app.get("/getShoppingPartners", authhentication, getShoppingPartner);
 
 app.use("/auth", authRoute);
 
-app.use("/company", ensureAutheticated, companyRoutes);
+app.use("/company", ensureAuthenticated, companyRoutes);
 
 // test Api 
 
