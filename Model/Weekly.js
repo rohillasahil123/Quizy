@@ -28,6 +28,8 @@ const contestweekSchema = new mongoose.Schema({
   isFull: { type: Boolean, default: false },
   tempScore: { type: Number, default: null },
   isValid: { type: Boolean, default: false },
+  startTime: { type: Date, required: true }, 
+  duration: { type: Number, required: true }
 
 });
 

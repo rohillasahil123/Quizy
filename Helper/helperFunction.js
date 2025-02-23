@@ -30,36 +30,38 @@ async function logTransaction(combineId, amount, type, title, status) {
 async function createMultipleContestss() {
     const contestAmounts = [5, 10, 25, 50, 100, 500];
     const contests = [];
-    for (let amount of contestAmounts) {
-        const existingContest = await contestdetails.findOne({ amount: amount, isFull: false });
-        if (existingContest) {
-            if (existingContest.combineId.length >= existingContest.maxParticipants) {
-                console.log("one");
-                existingContest.isFull = true;
-                await existingContest.save();
-                const newContest = await createNewContest(amount);
-                contests.push(newContest);
-                console.log("two");
-            } else {
-                contests.push(existingContest);
-                console.log("3");
-            }
-        } else {
-            const newContest = await createNewContest(amount);
-            contests.push(newContest);
-            console.log("4");
-        }
-    }
+    // for (let amount of contestAmounts) {
+    //     const existingContest = await contestdetails.findOne({ amount: amount, isFull: false });
+    //     if (existingContest) {
+    //         if (existingContest.combineId.length >= existingContest.maxParticipants) {
+    //             console.log("one");
+    //             existingContest.isFull = true;
+    //             await existingContest.save();
+    //             const newContest = await createNewContest(amount);
+    //             contests.push(newContest);
+    //             console.log("two");
+    //         } else {
+    //             contests.push(existingContest);
+    //             console.log("3");
+    //         }
+    //     } else {
+    //         const newContest = await createNewContest(amount);
+    //         contests.push(newContest);
+    //         console.log("4");
+    //     }
+    // }
     return contests;
 }
 
-async function createNewContest(amount) {
-    const winningAmount = Math.round(amount * 2 * 0.84);
-    const newContest = new contestdetails({
+async function createNewContest( contestType, prizeMoney, feeAmount, startTime, duration) {
+    // const winningAmount = Math.round(amount * 2 * 0.84);
+    const newContest = new contestType({
         combineId: [],
         maxParticipants: 2,
-        amount: amount,
-        winningAmount: winningAmount,
+        amount: feeAmount,
+        winningAmount: prizeMoney,
+        duration: duration,
+        startTime: startTime,
         isFull: false,
     });
     return await newContest.save();

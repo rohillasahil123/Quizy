@@ -178,6 +178,53 @@ app.post("/verify-otp", async (req, res) => {
     }
 });
 
+app.post("/verify-refferralCode", async (req, res) => {
+    try {
+        let referralBonusForUser = 10;
+        let referralBonusForReferrer = 10; 
+
+        const { referredBy, phoneNumber } = req.body;
+        const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
+        if (!phoneNumberData) {
+            return res.status(202).json({ success: false, message: "Your are not verified" });
+        }
+        if (referredBy && referredBy.trim() !== "") {
+            const upperCaseReferredBy = referredBy.toUpperCase();
+            const referralRecord = await CombineDetails.findOne({
+                $or: [
+                    { "formDetails.referralCode": upperCaseReferredBy },
+                    { "studentDetails.referralCode": upperCaseReferredBy },
+                ],
+            });
+            if (!referralRecord) {
+                return res.status(202).json({ success: false, message: "Referral code not found" });
+            }
+            let referrerWallet = await Wallet.findOne({ combineId: referralRecord._id });
+            if (!referrerWallet) {
+                referrerWallet = new Wallet({ combineId: referralRecord._id, referralBalance: referralBonusForReferrer });
+            } else {
+                referrerWallet.referralBalance += referralBonusForReferrer;
+            }
+            await referrerWallet.save();
+            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit", "Refferal bonus", "completed");
+
+            const referredByDetails = {
+                userId: referralRecord._id,
+                fullname: referralRecord.formDetails?.fullname || referralRecord.studentDetails?.fullname,
+            };
+            phoneNumberData.referredBy = referredByDetails;
+            await phoneNumberData.save();
+
+            res.status(200).json({success: true, message: "Referral code is Applied"});
+        }
+    } catch (error) {
+        console.error("Error apply referral code:", error);
+        res.status(500).send({
+            error: "Apply referral code error occurred",
+        });
+    }
+})
+
 app.get("/getReferralCode", async (req, res) => {
     try {
         const { userId } = req.query;
@@ -332,35 +379,6 @@ app.post("/other/add", authhentication, async (req, res) => {
     try {
         let initialAmountForUser = 10;
         let referralBonusForUser = 10;
-        let referralBonusForReferrer = 10; 
-
-        const { referredBy } = req.body;
-
-        if (referredBy && referredBy.trim() !== "") {
-            const upperCaseReferredBy = referredBy.toUpperCase();
-            const referralRecord = await CombineDetails.findOne({
-                $or: [
-                    { "formDetails.referralCode": upperCaseReferredBy },
-                    { "studentDetails.referralCode": upperCaseReferredBy },
-                ],
-            });
-            if (!referralRecord) {
-                return res.status(202).json({ message: "Referral code not found" });
-            }
-            let referrerWallet = await Wallet.findOne({ combineId: referralRecord._id });
-            if (!referrerWallet) {
-                referrerWallet = new Wallet({ combineId: referralRecord._id, referralBalance: referralBonusForReferrer });
-            } else {
-                referrerWallet.referralBalance += referralBonusForReferrer;
-            }
-            await referrerWallet.save();
-            await logTransaction(referralRecord._id, referralBonusForReferrer, "credit", "Refferal bonus", "completed");
-
-            req.body.referredBy = {
-                userId: referralRecord._id,
-                fullname: referralRecord.formDetails?.fullname || referralRecord.studentDetails?.fullname,
-            };
-        }
 
         let referralCode;
         let isUnique = false;
@@ -384,20 +402,31 @@ app.post("/other/add", authhentication, async (req, res) => {
         }
         req.body.referralCode = referralCode;
 
+        if (req.body.phoneNumber) {
+            const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: req.body.phoneNumber });
+            if (phoneNumberData && phoneNumberData.referredBy) {
+                req.body.referredBy = phoneNumberData.referredBy;
+            }
+        }
+        
         const data = new CombineDetails({ formDetails: req.body });
         const result = await data.save();
         let wallet = await Wallet.findOne({ combineId: result._id });
         if (!wallet) {
             wallet = new Wallet({ combineId: result._id, balance: initialAmountForUser});
             await logTransaction(result._id, initialAmountForUser, "credit", "Reward Money", "completed");
-        } else {
-            // wallet.referralBalance += referralBonusForUser;
-            // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
+        } 
+
+        if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
+            if (wallet) {
+                wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
+                await logTransaction(result._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
+            }
         }
+
         // Wallet //
         console.log(wallet);
         await wallet.save();
-        const transaction = await logTransaction(result._id, initialAmountForUser, "credit", "Reward Money", "completed");
         console.log(result);
         res.send({
             userDetails: result,
@@ -417,37 +446,7 @@ app.post("/student/add", authhentication, async (req, res) => {
         const studentData = req.body;
         validateStudentData(studentData);
         let initialAmountForUser = 10;
-        let referralBonusForUser = 8;
-        let referralBonusForReferrer = 10; 
-
-        const { referredBy } = req.body;
-
-        if (referredBy && referredBy.trim() !== "") {
-            const upperCaseReferredBy = referredBy.toUpperCase();
-            const referralRecord = await CombineDetails.findOne({
-                $or: [
-                    { "formDetails.referralCode": upperCaseReferredBy },
-                    { "studentDetails.referralCode": upperCaseReferredBy },
-                ],
-            });
-            if (!referralRecord) {
-                return res.status(202).json({ message: "Referral code not found" });
-            }
-            let referrerWallet = await Wallet.findOne({ combineId: referralRecord._id });
-            if (!referrerWallet) {
-                referrerWallet = new Wallet({ combineId: referralRecord._id, referralBalance: referralBonusForReferrer });
-            } else {
-                referrerWallet.referralBalance += referralBonusForReferrer;
-            }
-            await referrerWallet.save();
-            // await logTransaction(referralRecord._id, referralBonusForReferrer, "credit", "Refferal bonus", "completed");
-
-            req.body.referredBy = {
-                userId: referralRecord._id,
-                fullname: referralRecord.formDetails?.fullname || referralRecord.studentDetails?.fullname,
-            };
-        }
-
+        
         let referralCode;
         let isUnique = false;
 
@@ -470,6 +469,13 @@ app.post("/student/add", authhentication, async (req, res) => {
         }
         req.body.referralCode = referralCode;
 
+        if (req.body.phoneNumber) {
+            const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: req.body.phoneNumber });
+            if (phoneNumberData && phoneNumberData.referredBy) {
+                req.body.referredBy = phoneNumberData.referredBy;
+            }
+        }
+
         const studentdata = new CombineDetails({ studentDetails: studentData });
         const studentResult = await studentdata.save();
         console.log("Student-Result:", studentResult);
@@ -477,10 +483,15 @@ app.post("/student/add", authhentication, async (req, res) => {
         if (!wallet) {
             wallet = new Wallet({ combineId: studentResult._id, balance: initialAmountForUser});
             await logTransaction(studentResult._id, initialAmountForUser, "credit", "Reward Money", "completed");
-        } else {
-            // wallet.referralBalance += referralBonusForUser;
-            // await logTransaction(referralRecord._id, referralBonusForUser, "credit");
         }
+
+        if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
+            if (wallet) {
+                wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
+                await logTransaction(studentResult._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
+            }
+        }
+        
         await wallet.save();
         console.log("Saved Wallet:", wallet);
         res.send({

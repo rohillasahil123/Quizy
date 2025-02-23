@@ -26,7 +26,9 @@ const contestSchema = new mongoose.Schema({
   amount: { type: Number, required: true }, 
   winningAmount: { type: Number, required: true } ,
   isFull: { type: Boolean, default: false },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  startTime: { type: Date, required: true }, 
+  duration: { type: Number, required: true }
   
 });
 
