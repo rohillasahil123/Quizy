@@ -3669,7 +3669,7 @@ app.use("/company", ensureAuthenticated, companyRoutes);
 
 app.get("/address" , async (req,res)=>{{
     console.log("2")
-        res.json("api Start")
+        res.json("api Start, Added checkReferralCode api and create,get of Contests")
         console.log("2")
     }})
 
