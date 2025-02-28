@@ -52,7 +52,8 @@ const Schoolform = require("./Model/SchoolForm.js")
 const StudentSite = require("./Model/StudentSite.js")
 const AppDetails = require("./Model/AppDetails.js");
 const { getShoppingPartner } = require("./controllers/shoppingController.js");
-const Transaction = require("./Model/Transation");
+const Transaction = require("./Model/Transaction");
+const WithdrawalRequest = require("./Model/WithdrawalRequest.js");
 
 
 const app = express();
@@ -3616,6 +3617,64 @@ app.post("/wallet_to_wallet_transfer", authhentication, async (req, res) => {
     } catch (error) {
         console.error("Wallet transfer error:", error);
         return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+app.post('/wallet_to_bank_transfer', authhentication, async (req, res) => {
+    try {
+      const { fullname, userId, accountNumber, ifsc, amount } = req.body;
+  
+      if (!fullname || !accountNumber || !ifsc || !amount || !userId) {
+        return res.status(400).json({ success: false, message: 'Required details are missing' });
+      }
+  
+      const userWallet = await getWalletBycombineId(userId);
+      if (!userWallet) return res.status(404).json({ success: false, message: "User's wallet not found" });
+      if (Number(userWallet.balance) < Number(amount)) return res.status(400).json({ success: false, message: 'Insufficient balance' });
+
+      userWallet.balance = Number(userWallet.balance) - Number(amount);
+      await userWallet.save();
+  
+      const transaction = await logTransaction(userId, -amount, 'debit', 'Withdraw', 'pending');
+
+      const withdrawalRequest = new WithdrawalRequest({
+        userId,
+        transactionId: transaction._id,
+        fullname,
+        accountNumber,
+        ifsc,
+        amount,
+        status: 'pending'
+      });
+      await withdrawalRequest.save();
+  
+      return res.status(200).json({ success: true, message: 'Withdrawal request submitted' });
+    } catch (error) {
+      console.error("Wallet to bank transfer error:", error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+  
+app.post('/verify_bank_account', authhentication, async (req, res) => {
+    const { accountNumber, ifsc } = req.body;
+
+    if (!accountNumber || !ifsc) { return res.status(400).json({ success: false, message: 'Account number and IFSC are required' })}
+    try {
+        // const response = await axios.post('https://api.razorpay.com/v1/fund_accounts/validate', 
+        //     { account_number: accountNumber, ifsc: ifsc },
+        //     { auth: { username: 'your_api_key', password: 'your_api_secret' }, headers: { 'Content-Type': 'application/json' }}
+        // );
+        // if (response.data.success) {
+            return res.json({
+                success: true,
+                // accountHolderName: response.data.account_holder_name
+                accountHolderName: "Hello user"
+            });
+        // } else {
+        //     return res.json({ success: false, message: 'Invalid account details' });
+        // }
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Verification failed', error: error.message });
     }
 });
 

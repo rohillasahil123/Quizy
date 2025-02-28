@@ -67,7 +67,7 @@ async function getContest(req, res) {
     let contests = [];
 
     switch (type) {
-      case "GK":
+      case "Daily":
         contests = await contestdetails.find();
         break;
       case "Weekly":
@@ -79,7 +79,7 @@ async function getContest(req, res) {
       case "Mega":
         contests = await Megacontest.find();
         break;
-      case "Manual":
+      case "Teacher":
         contests = await KeyContest.find();
         break;
       default:

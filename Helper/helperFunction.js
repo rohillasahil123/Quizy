@@ -1,6 +1,6 @@
 const CombineDetails = require("../Model/OtherData");
 const Wallet = require("../Model/Wallet");
-const Transaction = require("../Model/Transation");
+const Transaction = require("../Model/Transaction.js");
 const contestdetails = require("../Model/contest");
 const monthContest = require("../Model/MonthlyContest.js");
 const studentContestQuestion = require("../Model/student_Question.js");
@@ -53,7 +53,7 @@ async function createMultipleContestss() {
     return contests;
 }
 
-async function createNewContest( contestType, prizeMoney, feeAmount, startTime, duration) {
+async function createNewContest(contestType, prizeMoney, feeAmount, startTime, duration) {
     // const winningAmount = Math.round(amount * 2 * 0.84);
     const newContest = new contestType({
         combineId: [],
@@ -213,10 +213,10 @@ async function createNewContestWeek(playerFee) {
 async function createWeeklyContests() {
     const playerFee = 19;
     const contests = [];
-    let existingContest = await  weeklycontest.findOne({ amount: playerFee, isFull: false });
+    let existingContest = await weeklycontest.findOne({ amount: playerFee, isFull: false });
 
     if (existingContest) {
-     existingContest.winningAmount = 1000000;
+        existingContest.winningAmount = 1000000;
         console.log(existingContest.winningAmount)
         if (existingContest.combineId.length >= existingContest.maxParticipants) {
             existingContest.isFull = true;
@@ -273,16 +273,16 @@ async function createNewContestMega(amount) {
 // School  Site function
 
 async function createSchoolMultipleContests(contestCount) {
-//     const contestSchool = [];
-//     for (let i = 0; i < contestCount; i++) {
-//         const newContestmonth = new SchoolContest({
-//             combineId: [],
-//             schoolName: "",
-//             maxParticipants: 100000,
-//         });
-//         contestSchool.push(await newContestmonth.save());
-//     }
-//     return contestSchool;
+    //     const contestSchool = [];
+    //     for (let i = 0; i < contestCount; i++) {
+    //         const newContestmonth = new SchoolContest({
+    //             combineId: [],
+    //             schoolName: "",
+    //             maxParticipants: 100000,
+    //         });
+    //         contestSchool.push(await newContestmonth.save());
+    //     }
+    //     return contestSchool;
 }
 
 module.exports = {

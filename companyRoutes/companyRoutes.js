@@ -7,6 +7,7 @@ const contesRoutes = require("./contestRoutes");
 const teacherRoutes = require("./teacherRoutes");
 const questionRoutes = require("./questionRoutes");
 const franchiseRoutes = require("./franchiseRoutes");
+const withdrawalRequestRoutes = require('./withdrawalRequestRoutes');
 const authorize = require("../Middelware/authorizeMiddleware"); 
 const { getLocations } = require('../controllers/marketingController');
 
@@ -23,5 +24,7 @@ router.use("/teacher", authorize(["Admin", "School"]), teacherRoutes);
 router.use("/contest", authorize(["Admin", "Teacher"]), contesRoutes);
 
 router.use("/question", authorize(["Admin", "School", "Teacher"]), questionRoutes);
+
+router.use("/withdraw", authorize(["Admin"]), withdrawalRequestRoutes);
 
 module.exports = router;
