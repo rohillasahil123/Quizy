@@ -54,13 +54,29 @@ const AppDetails = require("./Model/AppDetails.js");
 const { getShoppingPartner } = require("./controllers/shoppingController.js");
 const Transaction = require("./Model/Transaction");
 const WithdrawalRequest = require("./Model/WithdrawalRequest.js");
+const Razorpay = require("razorpay");
 
 
 const app = express();
 
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
-app.use(cors());
+const razorpay = new Razorpay({
+    key_id: 'rzp_test_RmdMvunFIzaQ6d',
+    key_secret: 'Ai6rSepUG8YxM62GmDISEk9a',
+});
+
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin) return callback(null, true); // Allow requests with no origin (e.g., mobile apps)
+
+            callback(null, true); // Allow all origins dynamically
+        },
+        credentials: true, // Allow cookies and authentication headers
+    })
+);
+// app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -3678,6 +3694,48 @@ app.post('/verify_bank_account', authhentication, async (req, res) => {
     }
 });
 
+app.post("/create-order", async (req, res) => {
+    try {
+      const { amount } = req.body;
+        
+      const options = {
+        amount: amount * 100, // Amount in paise
+        currency: "INR",
+        receipt: `receipt_${Date.now()}`,
+      };
+  
+      const order = await razorpay.orders.create(options);
+      res.json({ orderId: order.id });
+    } catch (error) {
+      console.error("Order Creation Failed", error);
+      res.status(500).json({ error: "Failed to create order" });
+    }
+});
+
+app.post("/verify-payment", async (req, res) => {
+    try {
+        const { userId, orderId, paymentId, amount } = req.body;
+
+        if (!orderId || !paymentId || !amount || !userId) {
+            return res.status(400).json({ success: false, message: 'Required details are missing' });
+        }
+        if(status!='success') return res.status(400).json({ success: false, message: 'Transaction Failed' });
+        
+        const userWallet = await getWalletBycombineId(userId);
+        if (!userWallet) return res.status(404).json({ success: false, message: "User's wallet not found" });
+
+        userWallet.balance = Number(userWallet.balance) + Number(amount);
+        await userWallet.save();
+
+        await logTransaction(userId, +amount, 'credit', 'Add money to wallet', 'completed', orderId, paymentId);
+
+        res.json({ success: true, message: "Payment verified & saved" });
+    } catch (error) {
+        console.error("Payment Verification Failed", error);
+        res.status(500).json({ error: "Failed to verify payment" });
+    }
+});
+
 app.get("/getTransactions", authhentication, async (req, res) => {
     try {   
         const combineId = req.query.combineId;
@@ -3726,11 +3784,9 @@ app.use("/company", ensureAuthenticated, companyRoutes);
 
 // test Api 
 
-app.get("/address" , async (req,res)=>{{
-    console.log("2")
-        res.json("api Start, Current testing")
-        console.log("2")
-    }})
+app.get("/address" , async (req,res)=>{
+    res.json("api Start, Razorpay gateway added");
+})
 
 
 

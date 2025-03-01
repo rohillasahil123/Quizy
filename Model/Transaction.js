@@ -23,6 +23,12 @@ const transactionSchema = new mongoose.Schema({
     enum: ["completed", "pending", "failed"],
     required: true,
   },
+  orderId: {
+    type: String,
+  },
+  paymentId: {
+    type: String,
+  },
   created_at: {
     type: Date,
     default: Date.now,

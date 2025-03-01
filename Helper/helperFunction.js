@@ -22,8 +22,13 @@ async function updateWallet(wallet) {
     return await wallet.save();
 }
 
-async function logTransaction(combineId, amount, type, title, status) {
-    const transaction = new Transaction({ combineId, amount, type, title, status });
+async function logTransaction(combineId, amount, type, title, status, orderId, paymentId) {
+    const transactionData = { combineId, amount, type, title, status }
+    if(orderId) transactionData.orderId = orderId;
+    if(paymentId) transactionData.paymentId = paymentId;
+
+    const transaction = new Transaction(transactionData);
+
     return await transaction.save();
 }
 
