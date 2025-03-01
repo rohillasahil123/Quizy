@@ -3694,12 +3694,12 @@ app.post('/verify_bank_account', authhentication, async (req, res) => {
     }
 });
 
-app.post("/create-order", async (req, res) => {
+app.post("/create-order", authhentication, async (req, res) => {
     try {
-      const { amount } = req.body;
+      const { enteredAmount } = req.body;
         
       const options = {
-        amount: amount * 100, // Amount in paise
+        amount: enteredAmount * 100, // Amount in paise
         currency: "INR",
         receipt: `receipt_${Date.now()}`,
       };
@@ -3712,14 +3712,13 @@ app.post("/create-order", async (req, res) => {
     }
 });
 
-app.post("/verify-payment", async (req, res) => {
+app.post("/verify-payment", authhentication, async (req, res) => {
     try {
         const { userId, orderId, paymentId, amount } = req.body;
 
         if (!orderId || !paymentId || !amount || !userId) {
             return res.status(400).json({ success: false, message: 'Required details are missing' });
         }
-        if(status!='success') return res.status(400).json({ success: false, message: 'Transaction Failed' });
         
         const userWallet = await getWalletBycombineId(userId);
         if (!userWallet) return res.status(404).json({ success: false, message: "User's wallet not found" });
@@ -3785,6 +3784,7 @@ app.use("/company", ensureAuthenticated, companyRoutes);
 // test Api 
 
 app.get("/address" , async (req,res)=>{
+    console.log('Hello >>>>>>>>>>>>>>>>');
     res.json("api Start, Razorpay gateway added");
 })
 
