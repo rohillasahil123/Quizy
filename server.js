@@ -66,17 +66,17 @@ const razorpay = new Razorpay({
     key_secret: 'Ai6rSepUG8YxM62GmDISEk9a',
 });
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin) return callback(null, true); // Allow requests with no origin (e.g., mobile apps)
+// app.use(
+//     cors({
+//         origin: function (origin, callback) {
+//             if (!origin) return callback(null, true); // Allow requests with no origin (e.g., mobile apps)
 
-            callback(null, true); // Allow all origins dynamically
-        },
-        credentials: true, // Allow cookies and authentication headers
-    })
-);
-// app.use(cors());
+//             callback(null, true); // Allow all origins dynamically
+//         },
+//         credentials: true, // Allow cookies and authentication headers
+//     })
+// );
+app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
