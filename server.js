@@ -68,7 +68,7 @@ const razorpay = new Razorpay({
     key_secret: 'Ai6rSepUG8YxM62GmDISEk9a',
 });
 
-app.use(
+// app.use(
 //     cors({
 //         origin: function (origin, callback) {
 //             if (!origin) return callback(null, true); // Allow requests with no origin (e.g., mobile apps)
