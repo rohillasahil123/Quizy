@@ -4,27 +4,68 @@ const monthContest = require("../Model/MonthlyContest.js");
 const contestdetails = require("../Model/contest");
 const weeklycontest = require("../Model/Weekly.js");
 const Megacontest = require("../Model/Mega.js");
-const KeyContest = require ("../Model/KeySchema.js")
+const Teacher = require("../Model/Teacher");
+const School = require("../Model/School");
+const TeacherContest = require("../Model/TeacherContest");
+const TeacherQuestion = require("../Model/TeacherQuestion");
+const Question = require("../Model/Question");
 
 async function addContest(req, res) {
-  const { contestType, prizeMoney, feeAmount, startTime, duration } = req.body;
+  const { contestType, contestName, questions, prizeMoney, feeAmount, startTime, duration } = req.body;
   // const participants = [];
+
+  const MINUTES_IN_HOUR = 60;
+  const HOURS_IN_DAY = 24;
+  const DAYS_IN_WEEK = 7;
+  const DAYS_IN_MONTH = 30;
+  const DAYS_IN_YEAR = 365;
+
+  // Calculate durations in minutes for each contest type.
+  const dailyDuration    = (HOURS_IN_DAY * MINUTES_IN_HOUR) - MINUTES_IN_HOUR;         // 24h - 1h = 1380 minutes
+  const weeklyDuration   = ((DAYS_IN_WEEK * HOURS_IN_DAY) * MINUTES_IN_HOUR) - MINUTES_IN_HOUR; // (7 days - 1 hour)
+  const monthlyDuration  = ((DAYS_IN_MONTH * HOURS_IN_DAY) * MINUTES_IN_HOUR) - MINUTES_IN_HOUR; // (30 days - 1 hour)
+  const yearlyDuration  = ((DAYS_IN_YEAR * HOURS_IN_DAY) * MINUTES_IN_HOUR) - MINUTES_IN_HOUR; // 365 days - 1 hour
+
+  if(contestType === 'Syllabus Contest') return res.status(400).json({ success: false, message: "This feature is coming soon" });
   try {
-    switch (contestType) {
-      case "GK Contest":
-        await createNewContest(contestdetails, prizeMoney, feeAmount, startTime, duration);
+    switch (contestName) {
+      case "Daily Contest":
+        await createNewContest(contestdetails, prizeMoney, feeAmount, startTime, dailyDuration);
         break;
-      case "Weekly":
-        await createNewContestWeek(weeklycontest, prizeMoney, feeAmount, startTime, duration);
+      case "Weekly Contest":
+        await createNewContestWeek(weeklycontest, prizeMoney, feeAmount, startTime, weeklyDuration);
         break;
-      case "Monthly":
-        await createNewContestMonth(monthContest, prizeMoney, feeAmount, startTime, duration);
+      case "Monthly Contest":
+        await createNewContestMonth(monthContest, prizeMoney, feeAmount, startTime, monthlyDuration);
         break;
       case "Mega Contest":
-        await createNewContestMega(Megacontest, prizeMoney, feeAmount, startTime, duration);
+        await createNewContestMega(Megacontest, prizeMoney, feeAmount, startTime, yearlyDuration);
         break;
-      case "Manual Contest":
-        // Generate a 6-character unique key
+      case "Teacher Contest":
+        const teacherId = req.user._id;
+        let teacherDetails = await Teacher.find({_id: teacherId});
+        if (!teacherDetails) return res.status(400).send({ success: false, message: "Teacher is not found" });
+
+        let schoolDetails = await School.find({_id: teacherDetails[0].schoolId});
+        if (!schoolDetails) return res.status(400).send({ success: false, message: "School is not found" });
+        
+        const existingContest = await TeacherContest.findOne({
+          schoolName: schoolDetails[0].schoolName,
+          class: teacherDetails[0].class
+        });
+        if (existingContest) {
+          return res.status(400).json({ success: false, message: "Contest is already created" });
+        }
+        const teacherQuestionDocs = questions.map(q => ({
+          question: q.questionText, // Map 'questionText' to 'question'
+          correctAnswer: q.options[q.correctOption], // Use correctOption index to get the correct answer
+          options: q.options, // Array of options
+          classvalue: teacherDetails[0].class, // Assign teacher's class
+        }));
+
+        const savedTeacherQuestions = await TeacherQuestion.insertMany(teacherQuestionDocs);
+        const teacherQuestionIds = savedTeacherQuestions.map(q => q._id);
+
         const generateKey = () => {
           const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
           let key = "";
@@ -33,28 +74,29 @@ async function addContest(req, res) {
           }
           return key;
         };
-
+        const teacherDuration = questions.length * 10;
         const key = generateKey();
-        const newContest = new KeyContest({
+        const newContest = new TeacherContest({
           key,
-          prizePoll: prizeMoney,
-          joinAmount: feeAmount,
+          winningAmount: prizeMoney,
+          amount: feeAmount,
           // participants,
+          startTime: startTime,
+          questions: teacherQuestionIds,
+          duration: teacherDuration,
+          schoolName: schoolDetails[0].schoolName,
+          class: teacherDetails[0].class,
         });
+        
         await newContest.save();
         return res.status(201).json({
           success: true,
-          message: "Manual Contest created successfully",
-          contest: {
-            key: newContest.key,
-            prizeMoney: newContest.prizePoll,
-            feeAmount: newContest.joinAmount,
-          },
+          message: "Teacher Contest created successfully"
         });
       default:
         return res.status(400).json({ success: false, message: "Invalid contest type" });
     }
-    res.status(201).json({ success: true, message: `${contestType} added successfully` });
+    res.status(201).json({ success: true, message: `${contestName} added successfully` });
   } catch (error) {
     console.error("Error creating contest:", error);
     res.status(500).json({ success: false, message: "Internal server error", error });
@@ -80,7 +122,7 @@ async function getContest(req, res) {
         contests = await Megacontest.find();
         break;
       case "Teacher":
-        contests = await KeyContest.find();
+        contests = await TeacherContest.find();
         break;
       default:
         return res.status(400).json({ success: false, message: "Invalid contest type" });

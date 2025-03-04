@@ -55,6 +55,8 @@ const { getShoppingPartner } = require("./controllers/shoppingController.js");
 const Transaction = require("./Model/Transaction");
 const WithdrawalRequest = require("./Model/WithdrawalRequest.js");
 const Razorpay = require("razorpay");
+const School = require("./Model/School.js");
+const TeacherContest = require("./Model/TeacherContest.js");
 
 
 const app = express();
@@ -66,7 +68,7 @@ const razorpay = new Razorpay({
     key_secret: 'Ai6rSepUG8YxM62GmDISEk9a',
 });
 
-// app.use(
+app.use(
 //     cors({
 //         origin: function (origin, callback) {
 //             if (!origin) return callback(null, true); // Allow requests with no origin (e.g., mobile apps)
@@ -265,6 +267,19 @@ app.get("/getReferralCode", async (req, res) => {
     }
 });
 
+app.get("/getTeacherContest", async (req, res) => {
+    try {
+        const schoolName = req.query.schoolName;
+        const classValue = req.query.classValue;
+        const teacherContest = await TeacherContest.find({schoolName: schoolName, class: classValue}).select("-combineId -_v");
+
+        res.status(200).json({ success: true, teacherContest });
+    } catch (error) {
+        console.error("Error fetching transaction details:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
@@ -303,6 +318,17 @@ app.get("/getdetails", async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get("/getSchools", async (req, res) => {
+    try {
+        const listOfSchools = await School.find().select("schoolName city state");
+
+        res.status(200).json({ success: true, listOfSchools });
+    } catch (error) {
+        console.error("Error fetching transaction details:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 
@@ -434,12 +460,12 @@ app.post("/other/add", authhentication, async (req, res) => {
             await logTransaction(result._id, initialAmountForUser, "credit", "Reward Money", "completed");
         } 
 
-        if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
-            if (wallet) {
-                wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
-                await logTransaction(result._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
-            }
-        }
+        // if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
+        //     if (wallet) {
+        //         wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
+        //         await logTransaction(result._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
+        //     }
+        // }
 
         // Wallet //
         console.log(wallet);
@@ -502,12 +528,12 @@ app.post("/student/add", authhentication, async (req, res) => {
             await logTransaction(studentResult._id, initialAmountForUser, "credit", "Reward Money", "completed");
         }
 
-        if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
-            if (wallet) {
-                wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
-                await logTransaction(studentResult._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
-            }
-        }
+        // if (req.body.referredBy.userId != null && req.body.referredBy.userId != '' && req.body.referredBy.userId != undefined) {
+        //     if (wallet) {
+        //         wallet.referralBalance = (wallet.referralBalance || 0) + referralBonusForUser;
+        //         await logTransaction(studentResult._id, referralBonusForUser, "credit", "Referral Bonus", "completed");
+        //     }
+        // }
         
         await wallet.save();
         console.log("Saved Wallet:", wallet);
