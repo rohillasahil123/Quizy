@@ -2,10 +2,12 @@ const express = require("express");
 const mongoose = require("mongoose");
 const axios = require("axios");
 const cors = require ("cors");
+const nodemailer = require("nodemailer");
 const cookieParser = require('cookie-parser');
 const {ensureAuthenticated} = require('./Middelware/authenticateMiddleware.js')
 const authRoute = require("./companyRoutes/authRoutes.js");
 const companyRoutes = require("./companyRoutes/companyRoutes.js");
+const dotenv = require("dotenv");
 require("./configfile/config.js");
 const { getUserById,
     getWalletBycombineId,
@@ -60,6 +62,7 @@ const TeacherContest = require("./Model/TeacherContest.js");
 
 
 const app = express();
+dotenv.config();
 
 const secretKey = "credmantra";
 const fast2smsAPIKey = "kuM9ZYAPpRt0hFqVW71UbOxygli64dDrQzew3JLojN5HTfaIvskCR4bYSDAznIa6VxGmuq0ytT72LZ5f";
@@ -86,116 +89,234 @@ app.use(cookieParser());
 
 // Login needed Api Start
 //Genrate-Otp Api
-app.post("/send-otp", async (req, res) => {
-    const { phoneNumber } = req.body;
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-        return res.status(400).json({ success: false, message: "Invalid phone number" });
-    }
-    const otp = otpGenerator.generate(4, {  
-        lowerCaseAlphabets: false,
-        upperCaseAlphabets: false,
-        specialChars: false,
-        number: true,
-    });
-    const otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
-    try {
-        const updatedPhoneNumber = await PhoneNumber.findOneAndUpdate(
-            { phoneNumber: phoneNumber },
-            { otp: otp, otpExpiration: otpExpiration },
-            { upsert: true, new: true, runValidators: true }
-        );
-        const fast2smsResponse = await axios.get("https://www.fast2sms.com/dev/bulkV2", {
-            params: {
-                authorization: fast2smsAPIKey,
-                variables_values: otp,
-                route: "otp",
-                numbers: phoneNumber,
-            },
-        });
-        console.log("Fast2SMS Response:", fast2smsResponse.data);
-        res.json({
-            success: true,
-            updatedPhoneNumber,
-            message: "OTP generated successfully",
-            otp: `Dont share your Quizy code : ${otp} `,
-        });
-        console.log(otp);
-    } catch (err) {
-        console.error("Error generating OTP:", err);
-        res.status(500).json({
-            success: false,
-            message: "Failed to generate OTP",
-        });
-    }
-});
+// app.post("/send-otp", async (req, res) => {
+//     const { phoneNumber } = req.body;
+//     const phoneRegex = /^\d{10}$/;
+//     if (!phoneRegex.test(phoneNumber)) {
+//         return res.status(400).json({ success: false, message: "Invalid phone number" });
+//     }
+//     const otp = otpGenerator.generate(4, {  
+//         lowerCaseAlphabets: false,
+//         upperCaseAlphabets: false,
+//         specialChars: false,
+//         number: true,
+//     });
+//     const otpExpiration = new Date(Date.now() + 5 * 60 * 1000);
+//     try {
+//         const updatedPhoneNumber = await PhoneNumber.findOneAndUpdate(
+//             { phoneNumber: phoneNumber },
+//             { otp: otp, otpExpiration: otpExpiration },
+//             { upsert: true, new: true, runValidators: true }
+//         );
+//         const fast2smsResponse = await axios.get("https://www.fast2sms.com/dev/bulkV2", {
+//             params: {
+//                 authorization: fast2smsAPIKey,
+//                 variables_values: otp,
+//                 route: "otp",
+//                 numbers: phoneNumber,
+//             },
+//         });
+//         console.log("Fast2SMS Response:", fast2smsResponse.data);
+//         res.json({
+//             success: true,
+//             updatedPhoneNumber,
+//             message: "OTP generated successfully",
+//             otp: `Dont share your Quizy code : ${otp} `,
+//         });
+//         console.log(otp);
+//     } catch (err) {
+//         console.error("Error generating OTP:", err);
+//         res.status(500).json({
+//             success: false,
+//             message: "Failed to generate OTP",
+//         });
+//     }
+// });
 
 //verify-Otp
-app.post("/verify-otp", async (req, res) => {
-    const { phoneNumber, otp } = req.body;
-    try {
-        const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
-        if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
-            const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
-            const userData = await CombineDetails.findOne({
-                $or: [
-                    { "formDetails.phoneNumber": phoneNumber },
-                    { "studentDetails.phoneNumber": phoneNumber },
-                ],
-            });
-            const user = userData ? {
-                _id: userData._id || null,
-                fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
-                address: userData.formDetails?.address || userData.studentDetails?.address || null,
-                email: userData.formDetails?.email || null,
-                city: userData.formDetails?.city || userData.studentDetails?.city || null,
-                role: userData.formDetails?.role || userData.studentDetails?.role || null,
-                state: userData.formDetails?.state || userData.studentDetails?.state || null,
-                pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
-                phoneNumber: phoneNumber,
-                dob: userData.formDetails?.dob || null,
-                // Additional fields from studentDetails
-                schoolName: userData.studentDetails?.schoolName || null,
-                schoolAddress: userData.studentDetails?.schoolAddress || null,
-                selectEducation: userData.studentDetails?.selectEducation || null,
-                boardOption: userData.studentDetails?.boardOption || null,
-                classvalue: userData.studentDetails?.classvalue || null,
-                mediumName: userData.studentDetails?.mediumName || null,
-                aadharcard: userData.studentDetails?.aadharcard || null,
-            } : {
-                _id: null,
-                fullname: null,
-                address: null,
-                email: null,
-                city: null,
-                role: null,
-                state: null,
-                pincode: null,
-                phoneNumber: phoneNumber,
-                dob: null,
-                // Additional fields
-                schoolName: null,
-                schoolAddress: null,
-                selectEducation: null,
-                boardOption: null,
-                classvalue: null,
-                mediumName: null,
-                aadharcard: null,
-            };
-            res.json({
-                success: true,
-                message: "OTP verified successfully",
-                user: user,
-                token: token,
-            });
-        } else {
-            res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
-        }
-    } catch (err) {
-        console.error("Error verifying OTP:", err);
-        res.status(500).json({ success: false, message: "Failed to verify OTP" });
-    }
-});
+// app.post("/verify-otp", async (req, res) => {
+//     const { phoneNumber, otp } = req.body;
+//     try {
+//         const phoneNumberData = await PhoneNumber.findOne({ phoneNumber });
+//         if (phoneNumberData && phoneNumberData.otp === otp && phoneNumberData.otpExpiration > Date.now()) {
+//             const token = jwt.sign({ phoneNumber }, secretKey, { expiresIn: "24h" });
+//             const userData = await CombineDetails.findOne({
+//                 $or: [
+//                     { "formDetails.phoneNumber": phoneNumber },
+//                     { "studentDetails.phoneNumber": phoneNumber },
+//                 ],
+//             });
+//             const user = userData ? {
+//                 _id: userData._id || null,
+//                 fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
+//                 address: userData.formDetails?.address || userData.studentDetails?.address || null,
+//                 email: userData.formDetails?.email || null,
+//                 city: userData.formDetails?.city || userData.studentDetails?.city || null,
+//                 role: userData.formDetails?.role || userData.studentDetails?.role || null,
+//                 state: userData.formDetails?.state || userData.studentDetails?.state || null,
+//                 pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
+//                 phoneNumber: phoneNumber,
+//                 dob: userData.formDetails?.dob || null,
+//                 // Additional fields from studentDetails
+//                 schoolName: userData.studentDetails?.schoolName || null,
+//                 schoolAddress: userData.studentDetails?.schoolAddress || null,
+//                 selectEducation: userData.studentDetails?.selectEducation || null,
+//                 boardOption: userData.studentDetails?.boardOption || null,
+//                 classvalue: userData.studentDetails?.classvalue || null,
+//                 mediumName: userData.studentDetails?.mediumName || null,
+//                 aadharcard: userData.studentDetails?.aadharcard || null,
+//             } : {
+//                 _id: null,
+//                 fullname: null,
+//                 address: null,
+//                 email: null,
+//                 city: null,
+//                 role: null,
+//                 state: null,
+//                 pincode: null,
+//                 phoneNumber: phoneNumber,
+//                 dob: null,
+//                 // Additional fields
+//                 schoolName: null,
+//                 schoolAddress: null,
+//                 selectEducation: null,
+//                 boardOption: null,
+//                 classvalue: null,
+//                 mediumName: null,
+//                 aadharcard: null,
+//             };
+//             res.json({
+//                 success: true,
+//                 message: "OTP verified successfully",
+//                 user: user,
+//                 token: token,
+//             });
+//         } else {
+//             res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
+//         }
+//     } catch (err) {
+//         console.error("Error verifying OTP:", err);
+//         res.status(500).json({ success: false, message: "Failed to verify OTP" });
+//     }
+// });
+
+
+
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL, 
+      pass: process.env.PASSWORD, 
+    },
+  });
+
+
+  app.post("/send-otp", async (req, res) => {
+      const { email } = req.body;
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      const otpExpiration = Date.now() + 5 * 60 * 1000; // OTP expires in 5 minutes
+  
+      const mailOptions = {
+          from: process.env.GMAIL_USER,
+          to: email,
+          subject: "Your OTP Code",
+          text: `Your OTP code is: ${otp}`,
+      };
+  
+      try {
+          // Send OTP via email
+          await transporter.sendMail(mailOptions);
+  
+          // Store OTP in PhoneNumber collection
+          await PhoneNumber.findOneAndUpdate(
+              { email }, 
+              { email, otp, otpExpiration }, 
+              { upsert: true, new: true } // Create if not exists
+          );
+  
+          res.json({ success: true, message: "OTP sent successfully", otp });
+      } catch (error) {
+          console.error("Error sending OTP:", error);
+          res.status(500).json({ success: false, message: "Failed to send OTP" });
+      }
+  });
+  
+
+  
+  // Verify OTP
+
+  app.post("/verify-otp", async (req, res) => {
+      const { email, otp } = req.body;
+  
+      try {
+          const emailData = await PhoneNumber.findOne({ email });
+  
+          if (emailData && emailData.otp === otp && emailData.otpExpiration > Date.now()) {
+              const token = jwt.sign({ email }, secretKey, { expiresIn: "24h" });
+  
+              const userData = await CombineDetails.findOne({
+                  $or: [
+                      { "formDetails.email": email },
+                      { "studentDetails.email": email },
+                  ],
+              });
+  
+              const user = userData ? {
+                  _id: userData._id || null,
+                  fullname: userData.formDetails?.fullname || userData.studentDetails?.fullname || null,
+                  address: userData.formDetails?.address || userData.studentDetails?.address || null,
+                  email: email,
+                  city: userData.formDetails?.city || userData.studentDetails?.city || null,
+                  role: userData.formDetails?.role || userData.studentDetails?.role || null,
+                  state: userData.formDetails?.state || userData.studentDetails?.state || null,
+                  pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
+                  dob: userData.formDetails?.dob || null,
+                  // Additional fields from studentDetails
+                  schoolName: userData.studentDetails?.schoolName || null,
+                  schoolAddress: userData.studentDetails?.schoolAddress || null,
+                  selectEducation: userData.studentDetails?.selectEducation || null,
+                  boardOption: userData.studentDetails?.boardOption || null,
+                  classvalue: userData.studentDetails?.classvalue || null,
+                  mediumName: userData.studentDetails?.mediumName || null,
+                  aadharcard: userData.studentDetails?.aadharcard || null,
+              } : {
+                  _id: null,
+                  fullname: null,
+                  address: null,
+                  email: email,
+                  city: null,
+                  role: null,
+                  state: null,
+                  pincode: null,
+                  dob: null,
+                  schoolName: null,
+                  schoolAddress: null,
+                  selectEducation: null,
+                  boardOption: null,
+                  classvalue: null,
+                  mediumName: null,
+                  aadharcard: null,
+              };
+  
+              res.json({
+                  success: true,
+                  message: "OTP verified successfully",
+                  user: user,
+                  token: token,
+              });
+          } else {
+              res.status(400).json({ success: false, message: "Invalid OTP or OTP expired" });
+          }
+      } catch (err) {
+          console.error("Error verifying OTP:", err);
+          res.status(500).json({ success: false, message: "Failed to verify OTP" });
+      }
+  });
+  
+
+
+
 
 app.post("/verify-refferralCode", async (req, res) => {
     try {
