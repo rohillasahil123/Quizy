@@ -28,6 +28,7 @@ const newSchoolValidation = async (req, res, next) => {
         city: Joi.string().required(),
         district: Joi.string().required(),
         state: Joi.string().required(),
+        board: Joi.string().required(),
     });
 
     const { error } = schema.validate(req.body);

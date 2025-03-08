@@ -28,6 +28,15 @@ async function addContest(req, res) {
 
   if(contestType === 'Syllabus Contest') return res.status(400).json({ success: false, message: "This feature is coming soon" });
   try {
+    const date = new Date(startTime);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    const formattedStartTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
     switch (contestName) {
       case "Daily Contest":
         await createNewContest(contestdetails, prizeMoney, feeAmount, startTime, dailyDuration);
@@ -78,10 +87,10 @@ async function addContest(req, res) {
         const key = generateKey();
         const newContest = new TeacherContest({
           key,
-          winningAmount: prizeMoney,
-          amount: feeAmount,
+          winningAmount: 1000,
+          amount: 10,
           // participants,
-          startTime: startTime,
+          startTime: formattedStartTime,
           questions: teacherQuestionIds,
           duration: teacherDuration,
           schoolName: schoolDetails[0].schoolName,
@@ -122,7 +131,17 @@ async function getContest(req, res) {
         contests = await Megacontest.find();
         break;
       case "Teacher":
-        contests = await TeacherContest.find();
+        const teacherId = req.user._id;
+        let teacherDetails = await Teacher.find({_id: teacherId});
+        if (!teacherDetails) return res.status(400).send({ success: false, message: "Teacher is not found" });
+
+        let schoolDetails = await School.find({_id: teacherDetails[0].schoolId});
+        if (!schoolDetails) return res.status(400).send({ success: false, message: "School is not found" });
+        
+        contests = await TeacherContest.find({
+          schoolName: schoolDetails[0].schoolName,
+          class: teacherDetails[0].class
+        });
         break;
       default:
         return res.status(400).json({ success: false, message: "Invalid contest type" });
@@ -144,26 +163,46 @@ async function getContest(req, res) {
 
 
 async function updateContest(req, res) {
-  const { schoolId, contestId } = req.params;
-  try {
-    const updatedDetails = await Contest.findByIdAndUpdate(
-      { _id: contestId, schoolId: schoolId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-    if (!updatedDetails) {
-      return res.status(404).json({ success: false, message: "Contest not found" });
-    }
-    res.status(200).json({ success: true, message: "Contest updated successfully", user: updatedDetails });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error", error: error.message });
-  }
+  // const { schoolId, contestId } = req.params;
+  // try {
+  //   const updatedDetails = await Contest.findByIdAndUpdate(
+  //     { _id: contestId, schoolId: schoolId },
+  //     { $set: req.body },
+  //     { new: true, runValidators: true }
+  //   );
+  //   if (!updatedDetails) {
+  //     return res.status(404).json({ success: false, message: "Contest not found" });
+  //   }
+  //   res.status(200).json({ success: true, message: "Contest updated successfully", user: updatedDetails });
+  // } catch (error) {
+  //   res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+  // }
 }
 
 async function deleteContest(req, res) {
-  const { schoolId, contestId } = req.params;
+  const { id } = req.params;
+  const { type } = req.query;
   try {
-    const deletedDetails = await Contest.findByIdAndDelete({ _id: contestId, schoolId: schoolId });
+    let deletedDetails;
+    switch (type) {
+      case "Daily":
+        deletedDetails = await contestdetails.findByIdAndDelete(id);
+        break;
+      case "Weekly":
+        deletedDetails = await weeklycontest.findByIdAndDelete(id);
+        break;
+      case "Monthly":
+        deletedDetails = await monthContest.findByIdAndDelete(id);
+        break;
+      case "Mega":
+        deletedDetails = await Megacontest.findByIdAndDelete(id);
+        break;
+      case "Teacher":
+        deletedDetails = await TeacherContest.findByIdAndDelete(id);
+        break;
+      default:
+        return res.status(400).json({ success: false, message: "Invalid contest type" });
+    }
     if (!deletedDetails) {
       return res.status(404).json({ success: false, message: "Contest not found" });
     }

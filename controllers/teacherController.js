@@ -1,14 +1,18 @@
+const School = require("../Model/School");
 const Teacher = require("../Model/Teacher");
 const bcrypt = require('bcrypt');
 
 async function addTeacher(req, res) {
   const { schoolId } = req.params;
   try {
+    const school = await School.findById(schoolId);
+    if (!school) return res.status(404).json({ success: false, message: "School not found" });
     const hashedPassword = await bcrypt.hash(req.body.password, 10);    
     const newTeacher = new Teacher({
       ...req.body,
       password: hashedPassword,
-      schoolId: schoolId
+      schoolId: schoolId,
+      board: school.board,
     });
     await newTeacher.save();
     res.status(201).json({ success: true, message: "New Teacher added" });

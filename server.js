@@ -59,6 +59,7 @@ const WithdrawalRequest = require("./Model/WithdrawalRequest.js");
 const Razorpay = require("razorpay");
 const School = require("./Model/School.js");
 const TeacherContest = require("./Model/TeacherContest.js");
+const TeacherQuestion = require("./Model/TeacherQuestion.js");
 
 
 const app = express();
@@ -271,6 +272,7 @@ const transporter = nodemailer.createTransport({
                   role: userData.formDetails?.role || userData.studentDetails?.role || null,
                   state: userData.formDetails?.state || userData.studentDetails?.state || null,
                   pincode: userData.formDetails?.pincode || userData.studentDetails?.pincode || null,
+                  phoneNumber: userData.formDetails?.phoneNumber || userData.studentDetails?.phoneNumber || null,
                   dob: userData.formDetails?.dob || null,
                   // Additional fields from studentDetails
                   schoolName: userData.studentDetails?.schoolName || null,
@@ -289,6 +291,7 @@ const transporter = nodemailer.createTransport({
                   role: null,
                   state: null,
                   pincode: null,
+                  phoneNumber: null,
                   dob: null,
                   schoolName: null,
                   schoolAddress: null,
@@ -388,19 +391,6 @@ app.get("/getReferralCode", async (req, res) => {
     }
 });
 
-app.get("/getTeacherContest", async (req, res) => {
-    try {
-        const schoolName = req.query.schoolName;
-        const classValue = req.query.classValue;
-        const teacherContest = await TeacherContest.find({schoolName: schoolName, class: classValue}).select("-combineId -_v");
-
-        res.status(200).json({ success: true, teacherContest });
-    } catch (error) {
-        console.error("Error fetching transaction details:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
-    }
-});
-
 app.get("/getdetails", async (req, res) => {
     const { phoneNumber } = req.query;
     try {
@@ -442,7 +432,7 @@ app.get("/getdetails", async (req, res) => {
     }
 });
 
-app.get("/getSchools", async (req, res) => {
+app.get("/getSchools", authhentication, async (req, res) => {
     try {
         const listOfSchools = await School.find().select("schoolName city state");
 
@@ -566,8 +556,8 @@ app.post("/other/add", authhentication, async (req, res) => {
         }
         req.body.referralCode = referralCode;
 
-        if (req.body.phoneNumber) {
-            const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: req.body.phoneNumber });
+        if (req.body.email) {
+            const phoneNumberData = await PhoneNumber.findOne({ email: req.body.email });
             if (phoneNumberData && phoneNumberData.referredBy) {
                 req.body.referredBy = phoneNumberData.referredBy;
             }
@@ -607,6 +597,7 @@ app.post("/other/add", authhentication, async (req, res) => {
 //  Student Form
 app.post("/student/add", authhentication, async (req, res) => {
     try {
+        console.log("Incoming data:", req.body);
         const studentData = req.body;
         validateStudentData(studentData);
         let initialAmountForUser = 10;
@@ -633,8 +624,8 @@ app.post("/student/add", authhentication, async (req, res) => {
         }
         req.body.referralCode = referralCode;
 
-        if (req.body.phoneNumber) {
-            const phoneNumberData = await PhoneNumber.findOne({ phoneNumber: req.body.phoneNumber });
+        if (req.body.email) {
+            const phoneNumberData = await PhoneNumber.findOne({ email: req.body.email });
             if (phoneNumberData && phoneNumberData.referredBy) {
                 req.body.referredBy = phoneNumberData.referredBy;
             }
@@ -3442,6 +3433,172 @@ app.post("/manual_answer", authhentication, async (req, res) => {
             combineuser,
             score: contestScore,
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/getTeacherContest", authhentication, async (req, res) => {
+    try {
+        const schoolName = req.query.schoolName;
+        const classValue = req.query.classValue;
+        const teacherContest = await TeacherContest.find({schoolName: schoolName, class: classValue}).select("-participants -_v");
+
+        res.status(200).json({ success: true, teacherContest });
+    } catch (error) {
+        console.error("Error fetching transaction details:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+app.post("/join_teacher_contest", authhentication, async (req, res) => {
+    const { contestId, newcombineId, fullname } = req.body;
+
+    try {
+        const [contest, wallet] = await Promise.all([
+            TeacherContest.findById(contestId),
+            getWalletBycombineId(newcombineId),
+        ]);
+
+        if (!contest) return res.status(404).json({ message: "Contest not found" });
+        if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+        const gameAmount = contest.amount;
+        const fiftyPercentGameAmount = gameAmount * 0.5;
+
+        const amountFromReferralBalance = Math.min(wallet.referralBalance, fiftyPercentGameAmount);
+        const amountFromMainBalance = gameAmount - amountFromReferralBalance;
+
+        if (wallet.balance < amountFromMainBalance) {
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+
+        const userEntry = contest.participants.find(
+            (entry) => entry.combineId.toString() === newcombineId.toString()
+        );
+        if(userEntry) return res.status(404).json({ message: "You have already joined this contest" });
+
+        // add condition of if user already exist
+        await contest.participants.push({ combineId: newcombineId, combineuser: fullname});
+
+        wallet.balance -= amountFromMainBalance;
+        wallet.referralBalance -= amountFromReferralBalance;
+        await wallet.save();
+
+        await Promise.all([
+            amountFromMainBalance > 0 && logTransaction(newcombineId, -amountFromMainBalance, "debit", "Contest fee", "completed"),
+            amountFromReferralBalance > 0 && logTransaction(newcombineId, -amountFromReferralBalance, "debit", "Contest fee", "completed"),
+        ]);
+        await contest.save();
+
+        // if (contest.combineId.length >= contest.maxParticipants) {
+        //     contest.isFull = true;
+        //     await Promise.all([
+        //         contest.save(),
+        //         createNewWeeklyContest(gameAmount), // Replace with your function to create a new weekly contest
+        //     ]);
+        // }
+        res.json({
+            message: "User successfully joined the teacher contest!",
+            balance: wallet.balance,
+            referralBalance: wallet.referralBalance,
+        });
+
+    } catch (err) {
+        console.error("Error occurred:", err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.post("/teacher_question", authhentication, async (req, res) => {
+    const { combineId, questionId } = req.body;
+    try {
+        const othervalues = await CombineDetails.findById(combineId);
+        if (!othervalues) {
+            return res.status(400).send({ message: "user is not available" });
+        }
+        const count = await TeacherQuestion.countDocuments();
+        if (count === 0) {
+            return res.status(404).send({
+                message: "No questions available",
+                totalQuestions: count,
+            });
+        }
+        const question = await TeacherQuestion.find({_id: questionId});
+        res.status(200).send({ question});
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ message: "Internal server error" });
+    }
+});
+
+
+app.post("/teacher_answer", authhentication, async (req, res) => {
+    const { combineId, contestId, gkquestionId, selectedOption, combineuser, completionTime } = req.body;
+    try {
+        const question = await TeacherQuestion.findById(gkquestionId);
+        if (!question) { return res.status(404).json({ message: "Question not found" }); }
+        const isCorrect = question.correctAnswer === selectedOption;
+        const combinedata = await CombineDetails.findById(combineId);
+        if (!combinedata) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        let contestScore = 0;
+
+        const contest = await TeacherContest.findById(contestId);
+        if (!contest) { return res.status(404).json({ message: "Contest not found" })}
+        if (!Array.isArray(contest.participants)) { return res.status(400).json({ message: "Invalid contest data" })}
+        const userContest = contest.participants.find(
+            (participant) => participant.combineId?.toString() === combineId?.toString()
+        );
+        if (!userContest) return res.status(404).json({message: "Your are not join the contest yet."});
+        if (userContest.isCompleted) return res.status(404).json({message: "You already joined this contest"});
+        if (isCorrect) {
+            userContest.score += 1;
+            userContest.combineuser = combineuser;
+            userContest.completionTime = completionTime;
+            contestScore = userContest.score; 
+            if(completionTime) userContest.isCompleted = true;               
+        } else {
+            userContest.combineuser = combineuser;
+            userContest.completionTime = completionTime;
+        }
+        await contest.save();
+        res.json({
+            combineId,
+            contestId,
+            gkquestionId,
+            selectedOption,
+            isCorrect,
+            combineuser,
+            score: contestScore,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+app.get("/teacher_leaderboard", authhentication, async (req, res) => {
+    const { schoolName, classValue} = req.query;
+    try {
+      const contest = await TeacherContest.findOne({schoolName: schoolName, class: classValue});
+      if (!contest) {
+        return res.status(404).json({ message: "Contest not found" });
+      }
+      if (!Array.isArray(contest.participants)) {
+        return res.status(400).json({ message: "Invalid contest data" });
+      }
+
+      let topUsers = contest.participants.sort((a, b) => {
+        if (b.score === a.score && a.completionTime != null && b.completionTime != null) {
+          return a.completionTime - b.completionTime;
+        }
+        return b.score - a.score;
+      }).slice(0, 100);
+  
+      res.json({ topUsers});
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });

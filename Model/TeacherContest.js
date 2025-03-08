@@ -1,33 +1,21 @@
 const mongoose = require('mongoose');
 
 const participantSchema = new mongoose.Schema({
-  id: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-  },
-  fullname: {
-    type: String,
-    required: true,
-  },
-  score: {
-    type: Number,
-    default: 0,
-  },
-  joinCount: {
-    type: Number,
-    default: 0,
-},
+  combineId: { type: mongoose.Schema.Types.ObjectId },
+  isCompleted: { type: Boolean, default: false },
+  score: { type: Number, default: 0 },
+  completionTime: { type: Number, default: 0 },
+  combineuser: { type: String },
 });
 
 
 const contestTeacherSchema = new mongoose.Schema({
-  combineId: [participantSchema],  
+  participants: [participantSchema],  
   key: { type: String, required: true },
-  // maxParticipants: { type: Number, required: true }, 
   amount: { type: Number, required: true }, 
   winningAmount: { type: Number, required: true } ,
   isValid: { type: Boolean, default: false },
-  startTime: { type: Date, required: true }, 
+  startTime: { type: String, required: true }, 
   duration: { type: Number, required: true },
   schoolName: { type: String, required: true },
   class: { type: String, required: true },
