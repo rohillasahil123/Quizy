@@ -82,7 +82,20 @@ const razorpay = new Razorpay({
 //         credentials: true, // Allow cookies and authentication headers
 //     })
 // );
-app.use(cors());
+const allowedOrigins = [
+    "https://www.goquizzy.com",
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, true);
+        }
+    },
+    credentials: true,
+}));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
