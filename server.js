@@ -233,7 +233,7 @@ const transporter = nodemailer.createTransport({
           // Send OTP via email
           await transporter.sendMail(mailOptions);
   
-          // Store OTP in PhoneNumber collection
+          
           await PhoneNumber.findOneAndUpdate(
               { email }, 
               { email, otp, otpExpiration }, 
